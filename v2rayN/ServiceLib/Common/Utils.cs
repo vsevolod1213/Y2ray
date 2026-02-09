@@ -936,7 +936,7 @@ public class Utils
     {
         if (Environment.GetEnvironmentVariable(Global.LocalAppData) == "1")
         {
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "v2rayN");
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Global.AppName);
         }
 
         return GetBaseDirectory();
@@ -1126,17 +1126,20 @@ public class Utils
                 return false;
             }
 
-            if (p.StartsWith("/opt/v2rayN", StringComparison.OrdinalIgnoreCase))
+            if (p.StartsWith($"/opt/{Global.AppName}", StringComparison.OrdinalIgnoreCase)
+                || p.StartsWith("/opt/v2rayN", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
 
-            if (p.StartsWith("/usr/lib/v2rayN", StringComparison.OrdinalIgnoreCase))
+            if (p.StartsWith($"/usr/lib/{Global.AppName}", StringComparison.OrdinalIgnoreCase)
+                || p.StartsWith("/usr/lib/v2rayN", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
 
-            if (p.StartsWith("/usr/share/v2rayN", StringComparison.OrdinalIgnoreCase))
+            if (p.StartsWith($"/usr/share/{Global.AppName}", StringComparison.OrdinalIgnoreCase)
+                || p.StartsWith("/usr/share/v2rayN", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }

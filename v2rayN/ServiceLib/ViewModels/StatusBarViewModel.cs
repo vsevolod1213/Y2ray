@@ -4,6 +4,8 @@ public class StatusBarViewModel : MyReactiveObject
 {
     private static readonly Lazy<StatusBarViewModel> _instance = new(() => new(null));
     public static StatusBarViewModel Instance => _instance.Value;
+    private readonly SemaphoreSlim _quickConnectionSemaphore = new(1, 1);
+    private bool _suspendReactiveActions;
 
     #region ObservableCollection
 
@@ -109,6 +111,10 @@ public class StatusBarViewModel : MyReactiveObject
         {
             _config.TunModeItem.EnableTun = EnableTun = false;
         }
+        if (!_config.TunModeItem.EnableTun && _config.SystemProxyItem.SysProxyType == ESysProxyType.ForcedChange)
+        {
+            _config.SystemProxyItem.SysProxyType = ESysProxyType.ForcedClear;
+        }
 
         #region WhenAnyValue && ReactiveCommand
 
@@ -126,12 +132,26 @@ public class StatusBarViewModel : MyReactiveObject
         this.WhenAnyValue(
                 x => x.SystemProxySelected,
                 y => y >= 0)
-            .Subscribe(async c => await DoSystemProxySelected(c));
+            .Subscribe(async c =>
+            {
+                if (_suspendReactiveActions)
+                {
+                    return;
+                }
+                await DoSystemProxySelected(c);
+            });
 
         this.WhenAnyValue(
                 x => x.EnableTun,
                 y => y == true)
-            .Subscribe(async c => await DoEnableTun(c));
+            .Subscribe(async c =>
+            {
+                if (_suspendReactiveActions)
+                {
+                    return;
+                }
+                await DoEnableTun(c);
+            });
 
         CopyProxyCmdToClipboardCmd = ReactiveCommand.CreateFromTask(async () =>
         {
@@ -374,6 +394,73 @@ public class StatusBarViewModel : MyReactiveObject
     {
         RunningInfoDisplay = msg;
         await Task.CompletedTask;
+    }
+
+    public async Task<bool> SetQuickConnectionAsync(bool enable)
+    {
+        await _quickConnectionSemaphore.WaitAsync();
+        try
+        {
+            if (enable)
+            {
+                if (AllowEnableTun() == false)
+                {
+                    if (Utils.IsWindows())
+                    {
+                        await AppManager.Instance.RebootAsAdmin();
+                    }
+                    else
+                    {
+                        bool? passwordResult = await _updateView?.Invoke(EViewAction.PasswordInput, null);
+                        if (passwordResult == false)
+                        {
+                            return false;
+                        }
+                    }
+                }
+
+                _config.TunModeItem.EnableTun = true;
+                _config.SystemProxyItem.SysProxyType = ESysProxyType.ForcedChange;
+
+                _suspendReactiveActions = true;
+                try
+                {
+                    EnableTun = true;
+                    SystemProxySelected = (int)ESysProxyType.ForcedChange;
+                }
+                finally
+                {
+                    _suspendReactiveActions = false;
+                }
+
+                await ConfigHandler.SaveConfig(_config);
+                AppEvents.ReloadRequested.Publish();
+                return true;
+            }
+
+            _config.TunModeItem.EnableTun = false;
+            _config.SystemProxyItem.SysProxyType = ESysProxyType.ForcedClear;
+
+            _suspendReactiveActions = true;
+            try
+            {
+                EnableTun = false;
+                SystemProxySelected = (int)ESysProxyType.ForcedClear;
+            }
+            finally
+            {
+                _suspendReactiveActions = false;
+            }
+
+            await SysProxyHandler.UpdateSysProxy(_config, false);
+            await ConfigHandler.SaveConfig(_config);
+            AppEvents.ReloadRequested.Publish();
+            return true;
+        }
+        finally
+        {
+            _quickConnectionSemaphore.Release();
+        }
     }
 
     #region System proxy and Routings

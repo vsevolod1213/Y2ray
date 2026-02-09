@@ -6,6 +6,8 @@ public static class ConfigHandler
 {
     private static readonly string _configRes = Global.ConfigFileName;
     private static readonly string _tag = "ConfigHandler";
+    private static readonly SemaphoreSlim _saveConfigLock = new(1, 1);
+    private static readonly Mutex _saveConfigMutex = new(false, @"Global\Yvpn_Config_Save_Lock");
 
     #region ConfigHandler
 
@@ -33,6 +35,7 @@ public static class ConfigHandler
             }
         }
 
+        var isNewConfig = config == null;
         config ??= new Config();
 
         config.CoreBasicItem ??= new()
@@ -89,9 +92,13 @@ public static class ConfigHandler
         };
         config.TunModeItem ??= new TunModeItem
         {
-            EnableTun = false,
+            EnableTun = isNewConfig,
             Mtu = 9000,
         };
+        if (config.TunModeItem.Stack.IsNullOrEmpty())
+        {
+            config.TunModeItem.Stack = Global.TunStacks.First();
+        }
         config.GuiItem ??= new();
         config.MsgUIItem ??= new();
 
@@ -99,6 +106,10 @@ public static class ConfigHandler
         {
             EnableUpdateSubOnlyRemarksExist = true
         };
+        if (isNewConfig)
+        {
+            config.UiItem.Hide2TrayWhenClose = true;
+        }
         config.UiItem.MainColumnItem ??= new();
         config.UiItem.WindowSizeItem ??= new();
 
@@ -154,7 +165,10 @@ public static class ConfigHandler
             DownMbps = 100
         };
         config.ClashUIItem ??= new();
-        config.SystemProxyItem ??= new();
+        config.SystemProxyItem ??= new()
+        {
+            SysProxyType = isNewConfig ? ESysProxyType.ForcedChange : ESysProxyType.ForcedClear
+        };
         config.WebDavItem ??= new();
         config.CheckUpdateItem ??= new();
         config.Fragment4RayItem ??= new()
@@ -181,29 +195,70 @@ public static class ConfigHandler
     /// <returns>0 if successful, -1 if failed</returns>
     public static async Task<int> SaveConfig(Config config)
     {
+        await _saveConfigLock.WaitAsync();
+        var lockTaken = false;
         try
         {
-            //save temp file
+            lockTaken = _saveConfigMutex.WaitOne(TimeSpan.FromSeconds(5));
+            if (!lockTaken)
+            {
+                Logging.SaveLog($"{_tag}, timed out waiting for config save lock.");
+                return -1;
+            }
+
             var resPath = Utils.GetConfigPath(_configRes);
-            var tempPath = $"{resPath}_temp";
 
             var content = JsonUtils.Serialize(config, true, true);
             if (content.IsNullOrEmpty())
             {
                 return -1;
             }
-            await File.WriteAllTextAsync(tempPath, content);
 
-            //rename
-            File.Move(tempPath, resPath, true);
+            const int maxRetries = 5;
+            for (var attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                var tempPath = $"{resPath}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp";
+                try
+                {
+                    await File.WriteAllTextAsync(tempPath, content);
+                    File.Move(tempPath, resPath, true);
+                    return 0;
+                }
+                catch (IOException ex) when (attempt < maxRetries)
+                {
+                    Logging.SaveLog($"{_tag}, retry {attempt}/{maxRetries}: {ex.Message}");
+                    await Task.Delay(80 * attempt);
+                }
+                finally
+                {
+                    try
+                    {
+                        if (File.Exists(tempPath))
+                        {
+                            File.Delete(tempPath);
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
         }
         catch (Exception ex)
         {
             Logging.SaveLog(_tag, ex);
             return -1;
         }
+        finally
+        {
+            if (lockTaken)
+            {
+                _saveConfigMutex.ReleaseMutex();
+            }
+            _saveConfigLock.Release();
+        }
 
-        return 0;
+        return -1;
     }
 
     #endregion ConfigHandler

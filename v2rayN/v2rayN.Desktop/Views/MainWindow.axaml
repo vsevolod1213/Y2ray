@@ -3,148 +3,245 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:dialogHost="clr-namespace:DialogHostAvalonia;assembly=DialogHost.Avalonia"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:resx="clr-namespace:ServiceLib.Resx;assembly=ServiceLib"
-    xmlns:view="using:v2rayN.Desktop.Views"
-    xmlns:vms="clr-namespace:ServiceLib.ViewModels;assembly=ServiceLib"
-    Title="v2rayN"
-    Width="1200"
-    Height="800"
-    MinWidth="600"
-    x:DataType="vms:MainWindowViewModel"
+    Title="Yvpn"
+    Width="460"
+    Height="650"
+    MinWidth="380"
+    MinHeight="560"
     Icon="/Assets/NotifyIcon1.ico"
+    Background="#07070A"
     ShowInTaskbar="True"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
-    <dialogHost:DialogHost
-        Background="Gray"
-        CloseOnClickAway="True"
-        DisableOpeningAnimation="True">
-        <DockPanel>
-            <DockPanel Margin="{StaticResource Margin8}" DockPanel.Dock="Top">
-                <ContentControl x:Name="conTheme" DockPanel.Dock="Right" />
-                <Menu Margin="{StaticResource Margin4}">
-                    <MenuItem Header="{x:Static resx:ResUI.menuServers}">
-                        <MenuItem
-                            x:Name="menuAddServerViaClipboard"
-                            Header="{x:Static resx:ResUI.menuAddServerViaClipboard}"
-                            InputGesture="Ctrl+V" />
-                        <MenuItem
-                            x:Name="menuAddServerViaScan"
-                            Header="{x:Static resx:ResUI.menuAddServerViaScan}"
-                            InputGesture="Ctrl+S" />
-                        <MenuItem x:Name="menuAddServerViaImage" Header="{x:Static resx:ResUI.menuAddServerViaImage}" />
-                        <MenuItem x:Name="menuAddCustomServer" Header="{x:Static resx:ResUI.menuAddCustomServer}" />
-                        <MenuItem x:Name="menuAddPolicyGroupServer" Header="{x:Static resx:ResUI.menuAddPolicyGroupServer}" />
-                        <MenuItem x:Name="menuAddProxyChainServer" Header="{x:Static resx:ResUI.menuAddProxyChainServer}" />
-                        <Separator />
-                        <MenuItem x:Name="menuAddVmessServer" Header="{x:Static resx:ResUI.menuAddVmessServer}" />
-                        <MenuItem x:Name="menuAddVlessServer" Header="{x:Static resx:ResUI.menuAddVlessServer}" />
-                        <MenuItem x:Name="menuAddShadowsocksServer" Header="{x:Static resx:ResUI.menuAddShadowsocksServer}" />
-                        <MenuItem x:Name="menuAddTrojanServer" Header="{x:Static resx:ResUI.menuAddTrojanServer}" />
-                        <MenuItem x:Name="menuAddHysteria2Server" Header="{x:Static resx:ResUI.menuAddHysteria2Server}" />
-                        <MenuItem x:Name="menuAddWireguardServer" Header="{x:Static resx:ResUI.menuAddWireguardServer}" />
-                        <MenuItem x:Name="menuAddSocksServer" Header="{x:Static resx:ResUI.menuAddSocksServer}" />
-                        <MenuItem x:Name="menuAddHttpServer" Header="{x:Static resx:ResUI.menuAddHttpServer}" />
-                        <Separator />
-                        <MenuItem x:Name="menuAddTuicServer" Header="{x:Static resx:ResUI.menuAddTuicServer}" />
-                        <MenuItem x:Name="menuAddAnytlsServer" Header="{x:Static resx:ResUI.menuAddAnytlsServer}" />
-                    </MenuItem>
+    <Window.Resources>
+        <LinearGradientBrush x:Key="PanelBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Offset="0" Color="#171820" />
+            <GradientStop Offset="1" Color="#0D0D12" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="HeaderBackgroundBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Offset="0" Color="#1C1B25" />
+            <GradientStop Offset="1" Color="#141118" />
+        </LinearGradientBrush>
+    </Window.Resources>
 
-                    <MenuItem Header="{x:Static resx:ResUI.menuSubscription}">
-                        <MenuItem x:Name="menuSubSetting" Header="{x:Static resx:ResUI.menuSubSetting}" />
-                        <Separator />
-                        <MenuItem x:Name="menuSubUpdate" Header="{x:Static resx:ResUI.menuSubUpdate}" />
-                        <MenuItem x:Name="menuSubUpdateViaProxy" Header="{x:Static resx:ResUI.menuSubUpdateViaProxy}" />
-                        <MenuItem x:Name="menuSubGroupUpdate" Header="{x:Static resx:ResUI.menuSubGroupUpdate}" />
-                        <MenuItem x:Name="menuSubGroupUpdateViaProxy" Header="{x:Static resx:ResUI.menuSubGroupUpdateViaProxy}" />
-                    </MenuItem>
+    <Window.Styles>
+        <Style Selector="Border.InfoCard">
+            <Setter Property="Background" Value="#13141C" />
+            <Setter Property="BorderBrush" Value="#2A2D3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
 
-                    <MenuItem Header="{x:Static resx:ResUI.menuSetting}">
-                        <MenuItem x:Name="menuOptionSetting" Header="{x:Static resx:ResUI.menuOptionSetting}" />
-                        <MenuItem x:Name="menuRoutingSetting" Header="{x:Static resx:ResUI.menuRoutingSetting}" />
-                        <MenuItem x:Name="menuDNSSetting" Header="{x:Static resx:ResUI.menuDNSSetting}" />
-                        <MenuItem x:Name="menuFullConfigTemplate" Header="{x:Static resx:ResUI.menuFullConfigTemplate}" />
-                        <MenuItem
-                            x:Name="menuGlobalHotkeySetting"
-                            Header="{x:Static resx:ResUI.menuGlobalHotkeySetting}"
-                            IsVisible="{Binding BlIsWindows}" />
-                        <Separator />
-                        <MenuItem
-                            x:Name="menuRebootAsAdmin"
-                            Header="{x:Static resx:ResUI.menuRebootAsAdmin}"
-                            IsVisible="{Binding BlIsWindows}" />
-                        <MenuItem
-                            x:Name="menuSettingsSetUWP"
-                            Header="{x:Static resx:ResUI.TbSettingsSetUWP}"
-                            IsVisible="{Binding BlIsWindows}" />
-                        <MenuItem x:Name="menuClearServerStatistics" Header="{x:Static resx:ResUI.menuClearServerStatistics}" />
-                        <Separator />
-                        <MenuItem Header="{x:Static resx:ResUI.menuRegionalPresets}">
-                            <MenuItem x:Name="menuRegionalPresetsDefault" Header="{x:Static resx:ResUI.menuRegionalPresetsDefault}" />
-                            <MenuItem x:Name="menuRegionalPresetsRussia" Header="{x:Static resx:ResUI.menuRegionalPresetsRussia}" />
-                            <MenuItem x:Name="menuRegionalPresetsIran" Header="{x:Static resx:ResUI.menuRegionalPresetsIran}" />
-                        </MenuItem>
-                        <MenuItem x:Name="menuBackupAndRestore" Header="{x:Static resx:ResUI.menuBackupAndRestore}" />
-                        <MenuItem x:Name="menuOpenTheFileLocation" Header="{x:Static resx:ResUI.menuOpenTheFileLocation}" />
-                    </MenuItem>
+        <Style Selector="Button.ActionPrimary">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#FFF4F6" />
+            <Setter Property="Background" Value="#B4143C" />
+            <Setter Property="BorderBrush" Value="#E44A70" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
 
-                    <MenuItem x:Name="menuHelp" Header="{x:Static resx:ResUI.menuHelp}">
-                        <MenuItem x:Name="menuCheckUpdate" Header="{x:Static resx:ResUI.menuCheckUpdate}" />
-                        <Separator />
-                    </MenuItem>
+        <Style Selector="Button.ActionPrimary:pointerover">
+            <Setter Property="Background" Value="#C01B46" />
+        </Style>
 
-                    <MenuItem x:Name="menuReload" Header="{x:Static resx:ResUI.menuReload}" />
+        <Style Selector="Button.ActionSecondary">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#FFDDE4" />
+            <Setter Property="Background" Value="#1A1B24" />
+            <Setter Property="BorderBrush" Value="#343747" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
 
-                    <MenuItem x:Name="menuPromotion" Header="{x:Static resx:ResUI.menuPromotion}" />
+        <Style Selector="Button.ActionSecondary:pointerover">
+            <Setter Property="Background" Value="#20212D" />
+        </Style>
+    </Window.Styles>
 
-                    <MenuItem x:Name="menuClose" Header="{x:Static resx:ResUI.menuExit}" />
-                </Menu>
-            </DockPanel>
+    <Grid ClipToBounds="True">
+        <Grid IsHitTestVisible="False">
+            <Ellipse
+                Width="420"
+                Height="420"
+                Margin="0,-220,-140,0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top">
+                <Ellipse.Fill>
+                    <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                        <GradientStop Offset="0" Color="#77B4143C" />
+                        <GradientStop Offset="1" Color="#00B4143C" />
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
+            <Ellipse
+                Width="340"
+                Height="340"
+                Margin="-120,0,0,-180"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom">
+                <Ellipse.Fill>
+                    <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                        <GradientStop Offset="0" Color="#332AA5FF" />
+                        <GradientStop Offset="1" Color="#002AA5FF" />
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
+        </Grid>
 
-            <view:StatusBarView DockPanel.Dock="Bottom" />
+        <Grid Margin="20" RowDefinitions="Auto,*,Auto">
+            <Border
+                Grid.Row="0"
+                Padding="18,16"
+                Background="{StaticResource HeaderBackgroundBrush}"
+                BorderBrush="#3A3142"
+                BorderThickness="1"
+                CornerRadius="16">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Spacing="2">
+                        <TextBlock
+                            FontSize="33"
+                            FontWeight="Bold"
+                            Foreground="#FFF2F2"
+                            Text="Yvpn" />
+                        <TextBlock
+                            Foreground="#B8BAC6"
+                            Text="Secure tunnel control center" />
+                    </StackPanel>
 
-            <Grid>
+                    <Border
+                        Grid.Column="1"
+                        Padding="10,6"
+                        VerticalAlignment="Top"
+                        Background="#2D101A"
+                        BorderBrush="#A3294A"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                        <TextBlock
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="#FFCBD7"
+                            Text="YVPN CORE" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Border
+                Grid.Row="1"
+                Margin="0,14,0,14"
+                Padding="18"
+                Background="{StaticResource PanelBackgroundBrush}"
+                BorderBrush="#383C4B"
+                BorderThickness="1"
+                CornerRadius="18">
                 <Grid
-                    x:Name="gridMain"
-                    ColumnDefinitions="1*,10,1*"
-                    IsVisible="False">
-                    <ContentControl x:Name="tabProfiles" Grid.Column="0" />
-                    <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" />
-                    <TabControl
-                        x:Name="tabMain"
-                        Grid.Column="2"
-                        HorizontalContentAlignment="Left">
-                        <TabItem x:Name="tabMsgView" Header="{x:Static resx:ResUI.MsgInformationTitle}" />
-                        <TabItem x:Name="tabClashProxies" Header="{x:Static resx:ResUI.TbProxies}" />
-                        <TabItem x:Name="tabClashConnections" Header="{x:Static resx:ResUI.TbConnections}" />
-                    </TabControl>
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Center"
+                    RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                    RowSpacing="10">
+                    <Border
+                        HorizontalAlignment="Center"
+                        Padding="14,6"
+                        Background="#1A1E2A"
+                        BorderBrush="#3A4156"
+                        BorderThickness="1"
+                        CornerRadius="999">
+                        <TextBlock
+                            x:Name="txtConnectionStatus"
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Foreground="#C8CDD8"
+                            Text="Disconnected" />
+                    </Border>
+
+                    <Border
+                        Grid.Row="1"
+                        HorizontalAlignment="Center"
+                        Padding="10"
+                        Background="#120E13"
+                        BorderBrush="#5A1E32"
+                        BorderThickness="1"
+                        CornerRadius="120">
+                        <Button
+                            x:Name="btnToggleConnection"
+                            Width="194"
+                            Height="194"
+                            Background="#B4143C"
+                            BorderBrush="#EF6C8A"
+                            BorderThickness="2"
+                            Content="CONNECT"
+                            CornerRadius="97"
+                            FontSize="31"
+                            FontWeight="Bold"
+                            Foreground="#FFF4F6" />
+                    </Border>
+
+                    <Border Grid.Row="2" Classes="InfoCard">
+                        <StackPanel Spacing="4">
+                            <TextBlock
+                                Foreground="#98A1B4"
+                                Text="Active Node"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                x:Name="txtRunningServerDisplay"
+                                Foreground="#F4F5FA"
+                                Text="No server selected"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="3" Classes="InfoCard">
+                        <StackPanel Spacing="4">
+                            <TextBlock
+                                Foreground="#98A1B4"
+                                Text="Runtime Status"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                x:Name="txtRunningInfoDisplay"
+                                Foreground="#D6D9E2"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="4" Classes="InfoCard">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Foreground="#98A1B4"
+                                Text="Live Speed" />
+                            <TextBlock
+                                x:Name="txtSpeedProxyDisplay"
+                                Grid.Column="1"
+                                HorizontalAlignment="Right"
+                                Foreground="#EDEFF7"
+                                TextAlignment="Right"
+                                TextWrapping="Wrap" />
+                        </Grid>
+                    </Border>
                 </Grid>
-                <Grid
-                    x:Name="gridMain1"
-                    IsVisible="False"
-                    RowDefinitions="1*,10,1*">
-                    <ContentControl x:Name="tabProfiles1" Grid.Row="0" />
-                    <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" />
-                    <TabControl
-                        x:Name="tabMain1"
-                        Grid.Row="2"
-                        TabStripPlacement="Left">
-                        <TabItem x:Name="tabMsgView1" Header="{x:Static resx:ResUI.MsgInformationTitle}" />
-                        <TabItem x:Name="tabClashProxies1" Header="{x:Static resx:ResUI.TbProxies}" />
-                        <TabItem x:Name="tabClashConnections1" Header="{x:Static resx:ResUI.TbConnections}" />
-                    </TabControl>
-                </Grid>
-                <Grid x:Name="gridMain2" IsVisible="False">
-                    <TabControl x:Name="tabMain2" TabStripPlacement="Left">
-                        <TabItem x:Name="tabProfiles2" Header="{x:Static resx:ResUI.menuServers}" />
-                        <TabItem x:Name="tabMsgView2" Header="{x:Static resx:ResUI.MsgInformationTitle}" />
-                        <TabItem x:Name="tabClashProxies2" Header="{x:Static resx:ResUI.TbProxies}" />
-                        <TabItem x:Name="tabClashConnections2" Header="{x:Static resx:ResUI.TbConnections}" />
-                    </TabControl>
-                </Grid>
+            </Border>
+
+            <Grid
+                Grid.Row="2"
+                ColumnDefinitions="*,10,*"
+                RowDefinitions="Auto">
+                <Button
+                    x:Name="btnImportFromClipboard"
+                    Grid.Column="0"
+                    Height="44"
+                    Classes="ActionPrimary"
+                    Content="Import From Clipboard" />
+                <Button
+                    x:Name="btnExitApp"
+                    Grid.Column="2"
+                    Height="44"
+                    Classes="ActionSecondary"
+                    Content="Exit" />
             </Grid>
-        </DockPanel>
-    </dialogHost:DialogHost>
+        </Grid>
+    </Grid>
 </Window>

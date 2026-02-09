@@ -1,18 +1,65 @@
-# v2rayN
+# Yvpn Desktop
 
-A GUI client for Windows, Linux and macOS, support [Xray](https://github.com/XTLS/Xray-core)
-and [sing-box](https://github.com/SagerNet/sing-box)
-and [others](https://github.com/2dust/v2rayN/wiki/List-of-supported-cores)
+Simplified desktop VPN client for Windows, macOS, Linux, based on the `v2rayN` engine.
 
-[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/2dust/v2rayN)](https://github.com/2dust/v2rayN/commits/master)
-[![CodeFactor](https://www.codefactor.io/repository/github/2dust/v2rayn/badge)](https://www.codefactor.io/repository/github/2dust/v2rayn)
-[![GitHub Releases](https://img.shields.io/github/downloads/2dust/v2rayN/latest/total?logo=github)](https://github.com/2dust/v2rayN/releases)
-[![Chat on Telegram](https://img.shields.io/badge/Chat%20on-Telegram-brightgreen.svg)](https://t.me/v2rayn)
+## What was changed
 
-## How to use
+- Branded app identity: `Yvpn`.
+- Simplified main UI: one central `CONNECT` / `DISCONNECT` button.
+- New config defaults for fresh installs: tunnel mode + system proxy ready for quick start.
+- Quick onboarding action: import server/subscription link from clipboard.
 
-Read the [Wiki](https://github.com/2dust/v2rayN/wiki) for details.
+## Prerequisites
 
-## Telegram Channel
+- .NET 8 SDK (required to build/run this repo).
+- Git submodules initialized.
 
-[github_2dust](https://t.me/github_2dust)
+## Prepare workspace
+
+```powershell
+cd v2rayN
+git submodule update --init --recursive
+dotnet --info
+```
+
+`dotnet --info` must show an installed **SDK 8.x** (runtime only is not enough).
+
+## Run locally (development)
+
+```powershell
+dotnet restore .\v2rayN.Desktop\v2rayN.Desktop.csproj
+dotnet run --project .\v2rayN.Desktop\v2rayN.Desktop.csproj
+```
+
+## Build release binaries
+
+Windows:
+
+```powershell
+dotnet publish .\v2rayN.Desktop\v2rayN.Desktop.csproj -c Release -r win-x64 -p:SelfContained=true -o .\Release\windows-64
+dotnet publish .\v2rayN.Desktop\v2rayN.Desktop.csproj -c Release -r win-arm64 -p:SelfContained=true -o .\Release\windows-arm64
+```
+
+Linux:
+
+```bash
+dotnet publish ./v2rayN.Desktop/v2rayN.Desktop.csproj -c Release -r linux-x64 -p:SelfContained=true -o ./Release/linux-64
+dotnet publish ./v2rayN.Desktop/v2rayN.Desktop.csproj -c Release -r linux-arm64 -p:SelfContained=true -o ./Release/linux-arm64
+```
+
+macOS:
+
+```bash
+dotnet publish ./v2rayN.Desktop/v2rayN.Desktop.csproj -c Release -r osx-x64 -p:SelfContained=true -o ./Release/macos-64
+dotnet publish ./v2rayN.Desktop/v2rayN.Desktop.csproj -c Release -r osx-arm64 -p:SelfContained=true -o ./Release/macos-arm64
+```
+
+## How to test Yvpn client
+
+1. Start app with admin/root privileges (required for full TUN behavior).
+2. Copy your Yvpn subscription/server link to clipboard.
+3. Click `Import From Clipboard`.
+4. Click central `CONNECT`.
+5. Verify external IP changed and traffic goes through VPN.
+6. Click `DISCONNECT` and verify traffic returns to direct path.
+7. Restart app and verify state/settings persistence.
