@@ -4,244 +4,352 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="clr-namespace:ServiceLib.Models;assembly=ServiceLib"
     Title="Yvpn"
-    Width="460"
-    Height="650"
-    MinWidth="380"
-    MinHeight="560"
+    Width="520"
+    Height="760"
+    MinWidth="460"
+    MinHeight="680"
+    Background="#0B0C11"
+    ExtendClientAreaChromeHints="NoChrome"
+    ExtendClientAreaTitleBarHeightHint="44"
+    ExtendClientAreaToDecorationsHint="True"
     Icon="/Assets/NotifyIcon1.ico"
-    Background="#07070A"
     ShowInTaskbar="True"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
     <Window.Resources>
-        <LinearGradientBrush x:Key="PanelBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Offset="0" Color="#171820" />
-            <GradientStop Offset="1" Color="#0D0D12" />
-        </LinearGradientBrush>
-        <LinearGradientBrush x:Key="HeaderBackgroundBrush" StartPoint="0,0" EndPoint="1,0">
-            <GradientStop Offset="0" Color="#1C1B25" />
-            <GradientStop Offset="1" Color="#141118" />
-        </LinearGradientBrush>
+        <SolidColorBrush x:Key="BaseBackground" Color="#0B0C11" />
+        <SolidColorBrush x:Key="PanelBackground" Color="#131722" />
+        <SolidColorBrush x:Key="PanelBorder" Color="#272B38" />
+        <SolidColorBrush x:Key="PrimaryText" Color="#F4F5F7" />
+        <SolidColorBrush x:Key="SecondaryText" Color="#A8AFBD" />
+        <SolidColorBrush x:Key="AccentRed" Color="#C31845" />
+        <SolidColorBrush x:Key="AccentRedSoft" Color="#E85B81" />
+        <SolidColorBrush x:Key="AccentBlue" Color="#1778FF" />
     </Window.Resources>
 
     <Window.Styles>
-        <Style Selector="Border.InfoCard">
-            <Setter Property="Background" Value="#13141C" />
-            <Setter Property="BorderBrush" Value="#2A2D3A" />
+        <Style Selector="Border.Card">
+            <Setter Property="Background" Value="{StaticResource PanelBackground}" />
+            <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Padding" Value="12" />
+            <Setter Property="Padding" Value="14" />
         </Style>
 
-        <Style Selector="Button.ActionPrimary">
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="FontSize" Value="14" />
+        <Style Selector="Button.WindowControl">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="#C9CEDA" />
+            <Setter Property="Width" Value="42" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="FontSize" Value="17" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#FFF4F6" />
-            <Setter Property="Background" Value="#B4143C" />
-            <Setter Property="BorderBrush" Value="#E44A70" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+
+        <Style Selector="Button.WindowControl:pointerover">
+            <Setter Property="Background" Value="#222735" />
+        </Style>
+
+        <Style Selector="Button.WindowControl.close:pointerover">
+            <Setter Property="Background" Value="#C31845" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style Selector="Button.SideNav">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Background" Value="#161A26" />
+            <Setter Property="BorderBrush" Value="#2A3042" />
             <Setter Property="BorderThickness" Value="1" />
-        </Style>
-
-        <Style Selector="Button.ActionPrimary:pointerover">
-            <Setter Property="Background" Value="#C01B46" />
-        </Style>
-
-        <Style Selector="Button.ActionSecondary">
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="#8E97AA" />
+            <Setter Property="FontSize" Value="18" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#FFDDE4" />
-            <Setter Property="Background" Value="#1A1B24" />
-            <Setter Property="BorderBrush" Value="#343747" />
+        </Style>
+
+        <Style Selector="Button.SideNav.active">
+            <Setter Property="Background" Value="#1B2D4A" />
+            <Setter Property="BorderBrush" Value="#2760A7" />
+            <Setter Property="Foreground" Value="#5CA9FF" />
+        </Style>
+
+        <Style Selector="Button.PowerButton">
+            <Setter Property="Width" Value="220" />
+            <Setter Property="Height" Value="94" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Background" Value="#121720" />
+            <Setter Property="Foreground" Value="#E2E6EF" />
+            <Setter Property="BorderBrush" Value="#2C3347" />
             <Setter Property="BorderThickness" Value="1" />
         </Style>
 
-        <Style Selector="Button.ActionSecondary:pointerover">
-            <Setter Property="Background" Value="#20212D" />
+        <Style Selector="TextBlock.PowerBrand">
+            <Setter Property="FontSize" Value="34" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="LetterSpacing" Value="0.8" />
+            <Setter Property="Foreground" Value="#9AA3B5" />
+        </Style>
+
+        <Style Selector="TextBlock.PowerHint">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#717A8E" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Button.ModeButton">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#E8ECF4" />
+            <Setter Property="Background" Value="#171C29" />
+            <Setter Property="BorderBrush" Value="#2B344A" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style Selector="Button.PrimaryButton">
+            <Setter Property="Height" Value="38" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#FFF3F6" />
+            <Setter Property="Background" Value="{StaticResource AccentRed}" />
+            <Setter Property="BorderBrush" Value="{StaticResource AccentRedSoft}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style Selector="Button.DangerButton">
+            <Setter Property="Height" Value="38" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#FBD6DF" />
+            <Setter Property="Background" Value="#29111A" />
+            <Setter Property="BorderBrush" Value="#4B2230" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style Selector="Button.LinkButton">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Background" Value="#131826" />
+            <Setter Property="BorderBrush" Value="#2A3550" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#6DB0FF" />
+        </Style>
+
+        <Style Selector="Border.ConfigSelectorWrap">
+            <Setter Property="Background" Value="#171D2B" />
+            <Setter Property="BorderBrush" Value="#C92B4F" />
+            <Setter Property="BorderThickness" Value="1.6" />
+            <Setter Property="CornerRadius" Value="11" />
+            <Setter Property="Padding" Value="2" />
+        </Style>
+
+        <Style Selector="ComboBox.ConfigSelector">
+            <Setter Property="Background" Value="#1B2333" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#F7FAFF" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="CornerRadius" Value="9" />
+        </Style>
+
+        <Style Selector="ComboBox.ConfigSelector:pointerover">
+            <Setter Property="Background" Value="#212C40" />
+        </Style>
+
+        <Style Selector="ComboBox.ConfigSelector:focus">
+            <Setter Property="Background" Value="#24324B" />
+        </Style>
+
+        <Style Selector="ComboBoxItem">
+            <Setter Property="Background" Value="#181F2D" />
+            <Setter Property="Foreground" Value="#F4F7FF" />
+            <Setter Property="Padding" Value="10,8" />
+        </Style>
+
+        <Style Selector="ComboBoxItem:pointerover">
+            <Setter Property="Background" Value="#25314A" />
+        </Style>
+
+        <Style Selector="ComboBoxItem:selected">
+            <Setter Property="Background" Value="#8E1F3C" />
+            <Setter Property="Foreground" Value="#FFF5F8" />
         </Style>
     </Window.Styles>
 
-    <Grid ClipToBounds="True">
-        <Grid IsHitTestVisible="False">
-            <Ellipse
-                Width="420"
-                Height="420"
-                Margin="0,-220,-140,0"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top">
-                <Ellipse.Fill>
-                    <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
-                        <GradientStop Offset="0" Color="#77B4143C" />
-                        <GradientStop Offset="1" Color="#00B4143C" />
-                    </RadialGradientBrush>
-                </Ellipse.Fill>
-            </Ellipse>
-            <Ellipse
-                Width="340"
-                Height="340"
-                Margin="-120,0,0,-180"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Bottom">
-                <Ellipse.Fill>
-                    <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
-                        <GradientStop Offset="0" Color="#332AA5FF" />
-                        <GradientStop Offset="1" Color="#002AA5FF" />
-                    </RadialGradientBrush>
-                </Ellipse.Fill>
-            </Ellipse>
-        </Grid>
+    <Grid Background="{StaticResource BaseBackground}" RowDefinitions="44,*">
+        <Border
+            x:Name="topBar"
+            Grid.Row="0"
+            Background="#0E111A"
+            BorderBrush="#1D2432"
+            BorderThickness="0,0,0,1"
+            PointerPressed="TopBar_PointerPressed">
+            <Grid ColumnDefinitions="Auto,*,Auto" Margin="10,0,4,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                    <Image Width="20" Height="20" Source="/Assets/NotifyIcon1.ico" />
+                    <TextBlock Foreground="{StaticResource PrimaryText}" FontSize="13" FontWeight="SemiBold" Text="Yvpn" />
+                </StackPanel>
 
-        <Grid Margin="20" RowDefinitions="Auto,*,Auto">
-            <Border
-                Grid.Row="0"
-                Padding="18,16"
-                Background="{StaticResource HeaderBackgroundBrush}"
-                BorderBrush="#3A3142"
-                BorderThickness="1"
-                CornerRadius="16">
-                <Grid ColumnDefinitions="*,Auto">
-                    <StackPanel Spacing="2">
-                        <TextBlock
-                            FontSize="33"
-                            FontWeight="Bold"
-                            Foreground="#FFF2F2"
-                            Text="Yvpn" />
-                        <TextBlock
-                            Foreground="#B8BAC6"
-                            Text="Secure tunnel control center" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
+                    <Button x:Name="btnMinimize" Classes="WindowControl" Content="-" />
+                    <Button x:Name="btnMaximize" Classes="WindowControl" Content="□" />
+                    <Button x:Name="btnClose" Classes="WindowControl close" Content="×" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" ColumnDefinitions="72,*">
+            <Border Grid.Column="0" Background="#0E111A" BorderBrush="#1D2432" BorderThickness="0,0,1,0">
+                <Grid Margin="10,16,10,10" RowDefinitions="Auto,*,Auto">
+                    <StackPanel>
+                        <Button x:Name="btnNavMain" Classes="SideNav active" Content="⏻" />
+                        <Button x:Name="btnNavConfig" Classes="SideNav" Content="☰" />
+                        <Button x:Name="btnNavRoute" Classes="SideNav" Content="⇄" />
                     </StackPanel>
 
-                    <Border
-                        Grid.Column="1"
-                        Padding="10,6"
-                        VerticalAlignment="Top"
-                        Background="#2D101A"
-                        BorderBrush="#A3294A"
-                        BorderThickness="1"
-                        CornerRadius="10">
-                        <TextBlock
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Foreground="#FFCBD7"
-                            Text="YVPN CORE" />
-                    </Border>
+                    <TextBlock
+                        Grid.Row="2"
+                        HorizontalAlignment="Center"
+                        Foreground="#5B6478"
+                        FontSize="16"
+                        Text="i" />
                 </Grid>
             </Border>
 
-            <Border
-                Grid.Row="1"
-                Margin="0,14,0,14"
-                Padding="18"
-                Background="{StaticResource PanelBackgroundBrush}"
-                BorderBrush="#383C4B"
-                BorderThickness="1"
-                CornerRadius="18">
-                <Grid
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Center"
-                    RowDefinitions="Auto,Auto,Auto,Auto,Auto"
-                    RowSpacing="10">
-                    <Border
-                        HorizontalAlignment="Center"
-                        Padding="14,6"
-                        Background="#1A1E2A"
-                        BorderBrush="#3A4156"
-                        BorderThickness="1"
-                        CornerRadius="999">
-                        <TextBlock
-                            x:Name="txtConnectionStatus"
-                            FontSize="16"
-                            FontWeight="SemiBold"
-                            Foreground="#C8CDD8"
-                            Text="Disconnected" />
-                    </Border>
-
-                    <Border
-                        Grid.Row="1"
-                        HorizontalAlignment="Center"
-                        Padding="10"
-                        Background="#120E13"
-                        BorderBrush="#5A1E32"
-                        BorderThickness="1"
-                        CornerRadius="120">
-                        <Button
-                            x:Name="btnToggleConnection"
-                            Width="194"
-                            Height="194"
-                            Background="#B4143C"
-                            BorderBrush="#EF6C8A"
-                            BorderThickness="2"
-                            Content="CONNECT"
-                            CornerRadius="97"
-                            FontSize="31"
-                            FontWeight="Bold"
-                            Foreground="#FFF4F6" />
-                    </Border>
-
-                    <Border Grid.Row="2" Classes="InfoCard">
-                        <StackPanel Spacing="4">
+            <ScrollViewer
+                x:Name="scrollMainContent"
+                Grid.Column="1"
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="18,14,18,18" Spacing="12">
+                    <Border x:Name="sectionMainCard" Classes="Card">
+                        <StackPanel HorizontalAlignment="Center" Spacing="8">
                             <TextBlock
-                                Foreground="#98A1B4"
-                                Text="Active Node"
+                                HorizontalAlignment="Center"
+                                Foreground="{StaticResource PrimaryText}"
+                                FontSize="31"
+                                FontWeight="SemiBold"
+                                Text="Yvpn" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                Foreground="{StaticResource SecondaryText}"
+                                Text="Время подключения" />
+                            <TextBlock
+                                x:Name="txtConnectionDuration"
+                                HorizontalAlignment="Center"
+                                Foreground="{StaticResource PrimaryText}"
+                                FontSize="42"
+                                FontWeight="SemiBold"
+                                Text="00:00:00" />
+
+                            <Button x:Name="btnToggleConnection" Classes="PowerButton">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="1">
+                                    <TextBlock x:Name="txtPowerBrand" Classes="PowerBrand" Text="Y-VPN" />
+                                    <TextBlock x:Name="txtPowerHint" Classes="PowerHint" Text="нажмите для запуска" />
+                                </StackPanel>
+                            </Button>
+
+                            <Border
+                                x:Name="statusPill"
+                                Padding="16,6"
+                                Background="#1A1F2D"
+                                BorderBrush="#32384A"
+                                BorderThickness="1"
+                                CornerRadius="999">
+                                <TextBlock
+                                    x:Name="txtConnectionStatus"
+                                    HorizontalAlignment="Center"
+                                    Foreground="#B4BBCB"
+                                    FontWeight="SemiBold"
+                                    Text="Не подключено" />
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <Border x:Name="sectionModeCard" Classes="Card">
+                        <StackPanel Spacing="8">
+                            <TextBlock Foreground="{StaticResource PrimaryText}" FontSize="18" FontWeight="SemiBold" Text="Режим" />
+                            <TextBlock
+                                x:Name="txtModeHelp"
+                                Foreground="{StaticResource SecondaryText}"
+                                FontSize="12"
+                                TextWrapping="Wrap" />
+                            <Grid ColumnDefinitions="*,8,*">
+                                <Button x:Name="btnModeProxy" Grid.Column="0" Classes="ModeButton" Content="ПРОКСИ" />
+                                <Button x:Name="btnModeTun" Grid.Column="2" Classes="ModeButton" Content="ТУННЕЛЬ" />
+                            </Grid>
+                            <TextBlock
+                                Foreground="#95A0B5"
+                                FontSize="12"
+                                Text="Системный прокси: подходит для браузеров и приложений, которые используют прокси ОС."
                                 TextWrapping="Wrap" />
                             <TextBlock
-                                x:Name="txtRunningServerDisplay"
-                                Foreground="#F4F5FA"
-                                Text="No server selected"
+                                Foreground="#95A0B5"
+                                FontSize="12"
+                                Text="Туннель: перехватывает весь трафик устройства через VPN."
                                 TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="3" Classes="InfoCard">
-                        <StackPanel Spacing="4">
+                    <Border x:Name="sectionConfigCard" Classes="Card">
+                        <StackPanel Spacing="8">
+                            <TextBlock Foreground="{StaticResource PrimaryText}" FontSize="18" FontWeight="SemiBold" Text="Конфигурации" />
                             <TextBlock
-                                Foreground="#98A1B4"
-                                Text="Runtime Status"
+                                Foreground="#E2A7B6"
+                                FontSize="12"
+                                Text="Выберите профиль, который будет использован при подключении."
                                 TextWrapping="Wrap" />
+                            <Border Classes="ConfigSelectorWrap">
+                                <ComboBox x:Name="cmbConfigs" Classes="ConfigSelector" MinHeight="44">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="models:ComboItem">
+                                            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </Border>
                             <TextBlock
-                                x:Name="txtRunningInfoDisplay"
-                                Foreground="#D6D9E2"
+                                x:Name="txtConfigPreview"
+                                Foreground="{StaticResource SecondaryText}"
+                                FontSize="12"
                                 TextWrapping="Wrap" />
+                            <Grid ColumnDefinitions="*,8,*">
+                                <Button
+                                    x:Name="btnImportFromClipboard"
+                                    Grid.Column="0"
+                                    Classes="PrimaryButton"
+                                    Content="Добавить из буфера" />
+                                <Button
+                                    x:Name="btnDeleteConfig"
+                                    Grid.Column="2"
+                                    Classes="DangerButton"
+                                    Content="Удалить" />
+                            </Grid>
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="4" Classes="InfoCard">
-                        <Grid ColumnDefinitions="Auto,*">
-                            <TextBlock
-                                VerticalAlignment="Center"
-                                Foreground="#98A1B4"
-                                Text="Live Speed" />
-                            <TextBlock
-                                x:Name="txtSpeedProxyDisplay"
-                                Grid.Column="1"
-                                HorizontalAlignment="Right"
-                                Foreground="#EDEFF7"
-                                TextAlignment="Right"
-                                TextWrapping="Wrap" />
-                        </Grid>
+                    <Border Classes="Card">
+                        <StackPanel Spacing="6">
+                            <TextBlock Foreground="{StaticResource PrimaryText}" FontSize="18" FontWeight="SemiBold" Text="Статус" />
+                            <TextBlock x:Name="txtRunningServerDisplay" Foreground="#D6DAE5" TextWrapping="Wrap" />
+                            <TextBlock x:Name="txtRunningInfoDisplay" Foreground="#A6AFC1" FontSize="12" TextWrapping="Wrap" />
+                            <TextBlock x:Name="txtSpeedProxyDisplay" Foreground="#8FB8FF" FontSize="12" TextWrapping="Wrap" />
+                        </StackPanel>
                     </Border>
-                </Grid>
-            </Border>
 
-            <Grid
-                Grid.Row="2"
-                ColumnDefinitions="*,10,*"
-                RowDefinitions="Auto">
-                <Button
-                    x:Name="btnImportFromClipboard"
-                    Grid.Column="0"
-                    Height="44"
-                    Classes="ActionPrimary"
-                    Content="Import From Clipboard" />
-                <Button
-                    x:Name="btnExitApp"
-                    Grid.Column="2"
-                    Height="44"
-                    Classes="ActionSecondary"
-                    Content="Exit" />
-            </Grid>
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                        <TextBlock VerticalAlignment="Center" Foreground="#8F98AB" Text="Yvpn" />
+                        <Button x:Name="btnOpenTg" Grid.Column="1" Classes="LinkButton" Content="TG бот" />
+                        <Button x:Name="btnOpenSite" Grid.Column="2" Classes="LinkButton" Content="yopen.ru" />
+                    </Grid>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </Window>

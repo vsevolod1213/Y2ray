@@ -396,14 +396,14 @@ public class StatusBarViewModel : MyReactiveObject
         await Task.CompletedTask;
     }
 
-    public async Task<bool> SetQuickConnectionAsync(bool enable)
+    public async Task<bool> SetQuickConnectionAsync(bool enable, bool useTun = true)
     {
         await _quickConnectionSemaphore.WaitAsync();
         try
         {
             if (enable)
             {
-                if (AllowEnableTun() == false)
+                if (useTun && AllowEnableTun() == false)
                 {
                     if (Utils.IsWindows())
                     {
@@ -419,13 +419,13 @@ public class StatusBarViewModel : MyReactiveObject
                     }
                 }
 
-                _config.TunModeItem.EnableTun = true;
+                _config.TunModeItem.EnableTun = useTun;
                 _config.SystemProxyItem.SysProxyType = ESysProxyType.ForcedChange;
 
                 _suspendReactiveActions = true;
                 try
                 {
-                    EnableTun = true;
+                    EnableTun = useTun;
                     SystemProxySelected = (int)ESysProxyType.ForcedChange;
                 }
                 finally
