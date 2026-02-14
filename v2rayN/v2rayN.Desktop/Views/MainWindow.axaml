@@ -10,11 +10,13 @@
     Height="760"
     MinWidth="460"
     MinHeight="680"
+    FontFamily="Segoe UI, Inter, Noto Sans, Arial, sans-serif"
     Background="#0B0C11"
+    SystemDecorations="None"
     ExtendClientAreaChromeHints="NoChrome"
     ExtendClientAreaTitleBarHeightHint="44"
     ExtendClientAreaToDecorationsHint="True"
-    Icon="/Assets/NotifyIcon1.ico"
+    Icon="/Assets/favicon.ico"
     ShowInTaskbar="True"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
@@ -58,25 +60,6 @@
             <Setter Property="Foreground" Value="White" />
         </Style>
 
-        <Style Selector="Button.SideNav">
-            <Setter Property="Width" Value="44" />
-            <Setter Property="Height" Value="44" />
-            <Setter Property="Margin" Value="0,0,0,8" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Background" Value="#161A26" />
-            <Setter Property="BorderBrush" Value="#2A3042" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="#8E97AA" />
-            <Setter Property="FontSize" Value="18" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-        </Style>
-
-        <Style Selector="Button.SideNav.active">
-            <Setter Property="Background" Value="#1B2D4A" />
-            <Setter Property="BorderBrush" Value="#2760A7" />
-            <Setter Property="Foreground" Value="#5CA9FF" />
-        </Style>
-
         <Style Selector="Button.PowerButton">
             <Setter Property="Width" Value="220" />
             <Setter Property="Height" Value="94" />
@@ -101,13 +84,26 @@
         </Style>
 
         <Style Selector="Button.ModeButton">
-            <Setter Property="Height" Value="36" />
-            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="CornerRadius" Value="9" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#E8ECF4" />
-            <Setter Property="Background" Value="#171C29" />
-            <Setter Property="BorderBrush" Value="#2B344A" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#A7B0C2" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+
+        <Style Selector="Border.ModeToggleTrack">
+            <Setter Property="Background" Value="#111724" />
+            <Setter Property="BorderBrush" Value="#2C354A" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="2" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Width" Value="204" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
         </Style>
 
         <Style Selector="Button.PrimaryButton">
@@ -141,44 +137,63 @@
             <Setter Property="Foreground" Value="#6DB0FF" />
         </Style>
 
-        <Style Selector="Border.ConfigSelectorWrap">
-            <Setter Property="Background" Value="#171D2B" />
-            <Setter Property="BorderBrush" Value="#C92B4F" />
-            <Setter Property="BorderThickness" Value="1.6" />
-            <Setter Property="CornerRadius" Value="11" />
-            <Setter Property="Padding" Value="2" />
+        <Style Selector="Expander.ConfigExpander">
+            <Setter Property="Background" Value="#151C2A" />
+            <Setter Property="BorderBrush" Value="#2D3650" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
         </Style>
 
-        <Style Selector="ComboBox.ConfigSelector">
-            <Setter Property="Background" Value="#1B2333" />
+        <Style Selector="Expander.ConfigExpander > Border">
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="#F7FAFF" />
-            <Setter Property="Padding" Value="10,6" />
-            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="Background" Value="Transparent" />
         </Style>
 
-        <Style Selector="ComboBox.ConfigSelector:pointerover">
-            <Setter Property="Background" Value="#212C40" />
+        <Style Selector="ListBox.ConfigList">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
         </Style>
 
-        <Style Selector="ComboBox.ConfigSelector:focus">
-            <Setter Property="Background" Value="#24324B" />
+        <Style Selector="ListBox.ConfigList > ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Background" Value="#161D2B" />
+            <Setter Property="BorderBrush" Value="#263047" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
         </Style>
 
-        <Style Selector="ComboBoxItem">
-            <Setter Property="Background" Value="#181F2D" />
-            <Setter Property="Foreground" Value="#F4F7FF" />
-            <Setter Property="Padding" Value="10,8" />
+        <Style Selector="ListBox.ConfigList > ListBoxItem:pointerover">
+            <Setter Property="Background" Value="#1B2638" />
         </Style>
 
-        <Style Selector="ComboBoxItem:pointerover">
-            <Setter Property="Background" Value="#25314A" />
+        <Style Selector="ListBox.ConfigList > ListBoxItem:selected">
+            <Setter Property="Background" Value="#0F4EA6" />
+            <Setter Property="BorderBrush" Value="#2D74E9" />
         </Style>
 
-        <Style Selector="ComboBoxItem:selected">
-            <Setter Property="Background" Value="#8E1F3C" />
-            <Setter Property="Foreground" Value="#FFF5F8" />
+        <Style Selector="Button.ConfigDeleteButton">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="13" />
+            <Setter Property="Background" Value="#192131" />
+            <Setter Property="BorderBrush" Value="#32415F" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#D2DBEC" />
+        </Style>
+
+        <Style Selector="Button.ConfigDeleteButton:pointerover">
+            <Setter Property="Background" Value="#2A1420" />
+            <Setter Property="BorderBrush" Value="#8A2B48" />
+            <Setter Property="Foreground" Value="#FFD2DD" />
+        </Style>
+
+        <Style Selector="Button.ConfigDeleteButton:pressed">
+            <Setter Property="Background" Value="#170D14" />
+            <Setter Property="BorderBrush" Value="#7B233F" />
         </Style>
     </Window.Styles>
 
@@ -192,7 +207,7 @@
             PointerPressed="TopBar_PointerPressed">
             <Grid ColumnDefinitions="Auto,*,Auto" Margin="10,0,4,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
-                    <Image Width="20" Height="20" Source="/Assets/NotifyIcon1.ico" />
+                    <Image Width="20" Height="20" Source="/Assets/favicon.ico" />
                     <TextBlock Foreground="{StaticResource PrimaryText}" FontSize="13" FontWeight="SemiBold" Text="Yvpn" />
                 </StackPanel>
 
@@ -204,27 +219,9 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1" ColumnDefinitions="72,*">
-            <Border Grid.Column="0" Background="#0E111A" BorderBrush="#1D2432" BorderThickness="0,0,1,0">
-                <Grid Margin="10,16,10,10" RowDefinitions="Auto,*,Auto">
-                    <StackPanel>
-                        <Button x:Name="btnNavMain" Classes="SideNav active" Content="⏻" />
-                        <Button x:Name="btnNavConfig" Classes="SideNav" Content="☰" />
-                        <Button x:Name="btnNavRoute" Classes="SideNav" Content="⇄" />
-                    </StackPanel>
-
-                    <TextBlock
-                        Grid.Row="2"
-                        HorizontalAlignment="Center"
-                        Foreground="#5B6478"
-                        FontSize="16"
-                        Text="i" />
-                </Grid>
-            </Border>
-
+        <Grid Grid.Row="1">
             <ScrollViewer
                 x:Name="scrollMainContent"
-                Grid.Column="1"
                 HorizontalScrollBarVisibility="Disabled"
                 VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="18,14,18,18" Spacing="12">
@@ -275,15 +272,21 @@
                     <Border x:Name="sectionModeCard" Classes="Card">
                         <StackPanel Spacing="8">
                             <TextBlock Foreground="{StaticResource PrimaryText}" FontSize="18" FontWeight="SemiBold" Text="Режим" />
-                            <TextBlock
-                                x:Name="txtModeHelp"
-                                Foreground="{StaticResource SecondaryText}"
-                                FontSize="12"
-                                TextWrapping="Wrap" />
-                            <Grid ColumnDefinitions="*,8,*">
-                                <Button x:Name="btnModeProxy" Grid.Column="0" Classes="ModeButton" Content="ПРОКСИ" />
-                                <Button x:Name="btnModeTun" Grid.Column="2" Classes="ModeButton" Content="ТУННЕЛЬ" />
-                            </Grid>
+                            <Border Classes="ModeToggleTrack">
+                                <Grid>
+                                    <Border
+                                        x:Name="modeToggleThumb"
+                                        Margin="2,2,0,2"
+                                        HorizontalAlignment="Left"
+                                        Background="#0F4EA6"
+                                        CornerRadius="9"
+                                        Width="98" />
+                                    <Grid Margin="2" ColumnDefinitions="*,*">
+                                        <Button x:Name="btnModeProxy" Grid.Column="0" Classes="ModeButton" Content="ПРОКСИ" />
+                                        <Button x:Name="btnModeTun" Grid.Column="1" Classes="ModeButton" Content="ТУННЕЛЬ" />
+                                    </Grid>
+                                </Grid>
+                            </Border>
                             <TextBlock
                                 Foreground="#95A0B5"
                                 FontSize="12"
@@ -299,38 +302,60 @@
 
                     <Border x:Name="sectionConfigCard" Classes="Card">
                         <StackPanel Spacing="8">
-                            <TextBlock Foreground="{StaticResource PrimaryText}" FontSize="18" FontWeight="SemiBold" Text="Конфигурации" />
-                            <TextBlock
-                                Foreground="#E2A7B6"
-                                FontSize="12"
-                                Text="Выберите профиль, который будет использован при подключении."
-                                TextWrapping="Wrap" />
-                            <Border Classes="ConfigSelectorWrap">
-                                <ComboBox x:Name="cmbConfigs" Classes="ConfigSelector" MinHeight="44">
-                                    <ComboBox.ItemTemplate>
+                            <Button
+                                x:Name="btnImportFromClipboard"
+                                Classes="PrimaryButton"
+                                Content="Добавить из буфера" />
+                            <Expander
+                                x:Name="expConfigs"
+                                Classes="ConfigExpander"
+                                ExpandDirection="Down"
+                                IsExpanded="True">
+                                <Expander.Header>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            Foreground="{StaticResource PrimaryText}"
+                                            FontSize="18"
+                                            FontWeight="SemiBold"
+                                            Text="КОНФИГУРАЦИИ" />
+                                        <TextBlock
+                                            x:Name="txtConfigsChevron"
+                                            Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Foreground="#6EA8FF"
+                                            FontSize="18"
+                                            FontWeight="SemiBold"
+                                            Text="▾" />
+                                    </Grid>
+                                </Expander.Header>
+                                <ListBox x:Name="lstConfigs" Classes="ConfigList" SelectionMode="Single">
+                                    <ListBox.ItemTemplate>
                                         <DataTemplate x:DataType="models:ComboItem">
-                                            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock
+                                                    Margin="12,10,8,10"
+                                                    VerticalAlignment="Center"
+                                                    Text="{Binding Text}"
+                                                    TextWrapping="Wrap" />
+                                                <Button
+                                                    Grid.Column="1"
+                                                    Margin="0,8,10,8"
+                                                    Classes="ConfigDeleteButton"
+                                                    Click="BtnDeleteConfigRow_Click"
+                                                    Tag="{Binding ID}"
+                                                    ToolTip.Tip="Удалить конфигурацию">
+                                                    <PathIcon
+                                                        Width="12"
+                                                        Height="12"
+                                                        Data="{StaticResource building_delete}"
+                                                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                                </Button>
+                                            </Grid>
                                         </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
-                            </Border>
-                            <TextBlock
-                                x:Name="txtConfigPreview"
-                                Foreground="{StaticResource SecondaryText}"
-                                FontSize="12"
-                                TextWrapping="Wrap" />
-                            <Grid ColumnDefinitions="*,8,*">
-                                <Button
-                                    x:Name="btnImportFromClipboard"
-                                    Grid.Column="0"
-                                    Classes="PrimaryButton"
-                                    Content="Добавить из буфера" />
-                                <Button
-                                    x:Name="btnDeleteConfig"
-                                    Grid.Column="2"
-                                    Classes="DangerButton"
-                                    Content="Удалить" />
-                            </Grid>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Expander>
                         </StackPanel>
                     </Border>
 

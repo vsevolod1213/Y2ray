@@ -11,19 +11,29 @@ namespace v2rayN.Desktop.Views;
 
 public partial class MainWindow : WindowBase<StatusBarViewModel>
 {
+    private const double ModeThumbProxyLeft = 2d;
+    private const double ModeThumbTunLeft = 102d;
+    private static readonly TimeSpan ModeThumbAnimationDuration = TimeSpan.FromMilliseconds(180);
+
     private static Config _config;
     private readonly WindowNotificationManager? _manager;
     private readonly MainWindowViewModel _mainWindowViewModel;
     private readonly DispatcherTimer _connectionTimer;
+    private readonly DispatcherTimer _modeThumbAnimationTimer;
     private readonly SemaphoreSlim _refreshConfigsSemaphore = new(1, 1);
     private CancellationTokenSource? _powerBrandAnimationCts;
     private DateTime? _connectedAtUtc;
+    private DateTime _modeThumbAnimationStartedUtc;
     private bool _blCloseByUser;
     private bool _toggleInProgress;
     private bool _useTunMode;
     private bool _suppressConfigSelection;
     private bool _refreshConfigsPending;
+    private bool _modeThumbInitialized;
     private bool? _powerBrandConnectedState;
+    private double _modeThumbCurrentLeft = ModeThumbProxyLeft;
+    private double _modeThumbFromLeft;
+    private double _modeThumbToLeft;
 
     public MainWindow()
     {
@@ -40,6 +50,8 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
         _connectionTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _connectionTimer.Tick += ConnectionTimer_Tick;
+        _modeThumbAnimationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        _modeThumbAnimationTimer.Tick += ModeThumbAnimationTimer_Tick;
 
         ViewModel = StatusBarViewModel.Instance;
         ViewModel?.InitUpdateView(UpdateViewHandler);
@@ -49,13 +61,11 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
         btnToggleConnection.Click += BtnToggleConnection_Click;
         btnImportFromClipboard.Click += BtnImportFromClipboard_Click;
-        btnDeleteConfig.Click += BtnDeleteConfig_Click;
         btnModeProxy.Click += BtnModeProxy_Click;
         btnModeTun.Click += BtnModeTun_Click;
-        cmbConfigs.SelectionChanged += CmbConfigs_SelectionChanged;
-        btnNavMain.Click += BtnNavMain_Click;
-        btnNavConfig.Click += BtnNavConfig_Click;
-        btnNavRoute.Click += BtnNavRoute_Click;
+        expConfigs.Expanded += ExpConfigs_StateChanged;
+        expConfigs.Collapsed += ExpConfigs_StateChanged;
+        lstConfigs.SelectionChanged += LstConfigs_SelectionChanged;
 
         btnOpenTg.Click += (_, _) => ProcUtils.ProcessStart("https://t.me/Y_VPN_bot");
         btnOpenSite.Click += (_, _) => ProcUtils.ProcessStart("https://yopen.ru");
@@ -71,6 +81,15 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
             this.OneWayBind(ViewModel, vm => vm.RunningServerDisplay, v => v.txtRunningServerDisplay.Text).DisposeWith(disposables);
             this.OneWayBind(ViewModel, vm => vm.RunningInfoDisplay, v => v.txtRunningInfoDisplay.Text).DisposeWith(disposables);
             this.OneWayBind(ViewModel, vm => vm.SpeedProxyDisplay, v => v.txtSpeedProxyDisplay.Text).DisposeWith(disposables);
+
+            this.WhenAnyValue(v => v.ViewModel!.EnableTun)
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(enableTun =>
+                {
+                    _useTunMode = enableTun;
+                    RefreshModeView();
+                })
+                .DisposeWith(disposables);
 
             this.WhenAnyValue(v => v.ViewModel!.EnableTun, v => v.ViewModel!.SystemProxySelected)
                 .ObserveOn(RxApp.MainThreadScheduler)
@@ -122,8 +141,6 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         {
             WindowState = WindowState.Minimized;
         }
-
-        SetActiveNavButton(btnNavMain);
     }
 
     private void ForceRussianLocalization()
@@ -184,7 +201,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
     {
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow.Icon = AvaUtils.GetAppIcon(_config.SystemProxyItem.SysProxyType);
+            desktop.MainWindow.Icon = AvaUtils.GetAppIcon();
             var iconsList = TrayIcon.GetIcons(Application.Current);
             iconsList[0].Icon = desktop.MainWindow.Icon;
             TrayIcon.SetIcons(Application.Current, iconsList);
@@ -330,23 +347,61 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
     private void RefreshModeView()
     {
-        btnModeProxy.Background = _useTunMode
-            ? new SolidColorBrush(Color.Parse("#171C29"))
-            : new SolidColorBrush(Color.Parse("#0F3E7A"));
-        btnModeProxy.BorderBrush = _useTunMode
-            ? new SolidColorBrush(Color.Parse("#2B344A"))
-            : new SolidColorBrush(Color.Parse("#2A86FF"));
+        btnModeProxy.Foreground = _useTunMode
+            ? new SolidColorBrush(Color.Parse("#95A0B5"))
+            : new SolidColorBrush(Color.Parse("#F2F5FB"));
+        btnModeTun.Foreground = _useTunMode
+            ? new SolidColorBrush(Color.Parse("#F2F5FB"))
+            : new SolidColorBrush(Color.Parse("#95A0B5"));
 
-        btnModeTun.Background = _useTunMode
-            ? new SolidColorBrush(Color.Parse("#0F3E7A"))
-            : new SolidColorBrush(Color.Parse("#171C29"));
-        btnModeTun.BorderBrush = _useTunMode
-            ? new SolidColorBrush(Color.Parse("#2A86FF"))
-            : new SolidColorBrush(Color.Parse("#2B344A"));
+        AnimateModeThumb(_useTunMode);
+    }
 
-        txtModeHelp.Text = _useTunMode
-            ? "Активен режим ТУННЕЛЬ: через VPN идет весь трафик устройства."
-            : "Активен режим ПРОКСИ: VPN работает через системный прокси для совместимых приложений.";
+    private void AnimateModeThumb(bool useTun)
+    {
+        var targetLeft = useTun ? ModeThumbTunLeft : ModeThumbProxyLeft;
+        if (!_modeThumbInitialized)
+        {
+            _modeThumbInitialized = true;
+            SetModeThumbLeft(targetLeft);
+            return;
+        }
+
+        if (Math.Abs(_modeThumbCurrentLeft - targetLeft) < 0.01d)
+        {
+            SetModeThumbLeft(targetLeft);
+            return;
+        }
+
+        _modeThumbFromLeft = _modeThumbCurrentLeft;
+        _modeThumbToLeft = targetLeft;
+        _modeThumbAnimationStartedUtc = DateTime.UtcNow;
+        if (!_modeThumbAnimationTimer.IsEnabled)
+        {
+            _modeThumbAnimationTimer.Start();
+        }
+    }
+
+    private void ModeThumbAnimationTimer_Tick(object? sender, EventArgs e)
+    {
+        var elapsed = DateTime.UtcNow - _modeThumbAnimationStartedUtc;
+        var progress = elapsed.TotalMilliseconds / ModeThumbAnimationDuration.TotalMilliseconds;
+        if (progress >= 1d)
+        {
+            _modeThumbAnimationTimer.Stop();
+            SetModeThumbLeft(_modeThumbToLeft);
+            return;
+        }
+
+        var easedProgress = 1d - Math.Pow(1d - Math.Clamp(progress, 0d, 1d), 3d);
+        var left = Lerp(_modeThumbFromLeft, _modeThumbToLeft, easedProgress);
+        SetModeThumbLeft(left);
+    }
+
+    private void SetModeThumbLeft(double left)
+    {
+        _modeThumbCurrentLeft = left;
+        modeToggleThumb.Margin = new Thickness(left, 2, 0, 2);
     }
 
     private void EnsureConnectionTimerState(bool connected)
@@ -390,6 +445,20 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         txtConnectionDuration.Text = $"{hours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
     }
 
+    private void ExpConfigs_StateChanged(object? sender, RoutedEventArgs e)
+    {
+        RefreshConfigsChevron();
+    }
+
+    private void RefreshConfigsChevron()
+    {
+        var isExpanded = expConfigs.IsExpanded;
+        txtConfigsChevron.Text = isExpanded ? "▾" : "▸";
+        txtConfigsChevron.Foreground = isExpanded
+            ? new SolidColorBrush(Color.Parse("#6EA8FF"))
+            : new SolidColorBrush(Color.Parse("#95A0B5"));
+    }
+
     private async Task RefreshConfigListAsync()
     {
         if (!await _refreshConfigsSemaphore.WaitAsync(0))
@@ -403,18 +472,15 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
             var profiles = await AppManager.Instance.ProfileModels(_config.SubIndexId, "") ?? [];
             var configItems = profiles
                 .Where(p => !p.IndexId.IsNullOrEmpty())
-                .Select(p => new ComboItem { ID = p.IndexId, Text = p.GetSummary() })
+                .Select(p => new ComboItem { ID = p.IndexId, Text = GetProfileDisplayName(p) })
                 .ToList();
 
             _suppressConfigSelection = true;
-            cmbConfigs.ItemsSource = configItems;
+            lstConfigs.ItemsSource = configItems;
 
             var selected = configItems.FirstOrDefault(p => p.ID == _config.IndexId) ?? configItems.FirstOrDefault();
-            cmbConfigs.SelectedItem = selected;
+            lstConfigs.SelectedItem = selected;
             _suppressConfigSelection = false;
-
-            txtConfigPreview.Text = selected?.Text ?? "Нет доступных конфигураций. Добавь конфиг через буфер обмена.";
-            btnDeleteConfig.IsEnabled = selected != null;
 
             if (selected != null && _config.IndexId != selected.ID)
             {
@@ -432,20 +498,19 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         }
     }
 
-    private async void CmbConfigs_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    private async void LstConfigs_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_suppressConfigSelection)
         {
             return;
         }
 
-        if (cmbConfigs.SelectedItem is not ComboItem selected || selected.ID.IsNullOrEmpty())
+        if (lstConfigs.SelectedItem is not ComboItem selected || selected.ID.IsNullOrEmpty())
         {
             return;
         }
 
         await ConfigHandler.SetDefaultServerIndex(_config, selected.ID);
-        txtConfigPreview.Text = selected.Text;
 
         if (IsConnected())
         {
@@ -461,42 +526,6 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
     private async void BtnModeTun_Click(object? sender, RoutedEventArgs e)
     {
         await SetConnectionModeAsync(true);
-    }
-
-    private void BtnNavMain_Click(object? sender, RoutedEventArgs e)
-    {
-        SetActiveNavButton(btnNavMain);
-        ScrollToSection(sectionMainCard);
-    }
-
-    private void BtnNavConfig_Click(object? sender, RoutedEventArgs e)
-    {
-        SetActiveNavButton(btnNavConfig);
-        ScrollToSection(sectionConfigCard);
-    }
-
-    private void BtnNavRoute_Click(object? sender, RoutedEventArgs e)
-    {
-        SetActiveNavButton(btnNavRoute);
-        ScrollToSection(sectionModeCard);
-    }
-
-    private void ScrollToSection(Control control)
-    {
-        control.BringIntoView();
-    }
-
-    private void SetActiveNavButton(Button activeButton)
-    {
-        foreach (var btn in new[] { btnNavMain, btnNavConfig, btnNavRoute })
-        {
-            btn.Classes.Remove("active");
-        }
-
-        if (!activeButton.Classes.Contains("active"))
-        {
-            activeButton.Classes.Add("active");
-        }
     }
 
     private async Task SetConnectionModeAsync(bool useTun)
@@ -646,14 +675,14 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         }
     }
 
-    private async void BtnDeleteConfig_Click(object? sender, RoutedEventArgs e)
+    private async void BtnDeleteConfigRow_Click(object? sender, RoutedEventArgs e)
     {
-        if (cmbConfigs.SelectedItem is not ComboItem selected || selected.ID.IsNullOrEmpty())
+        if (sender is not Button { Tag: string configId } || configId.IsNullOrEmpty())
         {
             return;
         }
 
-        var profile = await AppManager.Instance.GetProfileItem(selected.ID);
+        var profile = await AppManager.Instance.GetProfileItem(configId);
         if (profile == null)
         {
             return;
@@ -668,6 +697,16 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         }
     }
 
+    private static string GetProfileDisplayName(ProfileItemModel profile)
+    {
+        if (!string.IsNullOrWhiteSpace(profile.Remarks))
+        {
+            return profile.Remarks.Trim();
+        }
+
+        return profile.IndexId;
+    }
+
     private void TopBar_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
@@ -679,6 +718,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
     protected override async void OnClosing(WindowClosingEventArgs e)
     {
         _powerBrandAnimationCts?.Cancel();
+        _modeThumbAnimationTimer.Stop();
 
         if (_blCloseByUser)
         {
@@ -761,6 +801,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
         RefreshModeView();
         RefreshConnectionView();
+        RefreshConfigsChevron();
         _ = RefreshConfigListAsync();
     }
 
