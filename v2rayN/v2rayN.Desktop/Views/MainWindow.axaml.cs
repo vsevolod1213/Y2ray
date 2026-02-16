@@ -21,6 +21,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
     private readonly DispatcherTimer _connectionTimer;
     private readonly DispatcherTimer _modeThumbAnimationTimer;
     private readonly SemaphoreSlim _refreshConfigsSemaphore = new(1, 1);
+    private readonly SemaphoreSlim _passwordDialogSemaphore = new(1, 1);
     private CancellationTokenSource? _powerBrandAnimationCts;
     private DateTime? _connectedAtUtc;
     private DateTime _modeThumbAnimationStartedUtc;
@@ -63,8 +64,6 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         btnImportFromClipboard.Click += BtnImportFromClipboard_Click;
         btnModeProxy.Click += BtnModeProxy_Click;
         btnModeTun.Click += BtnModeTun_Click;
-        expConfigs.Expanded += ExpConfigs_StateChanged;
-        expConfigs.Collapsed += ExpConfigs_StateChanged;
         lstConfigs.SelectionChanged += LstConfigs_SelectionChanged;
 
         btnOpenTg.Click += (_, _) => ProcUtils.ProcessStart("https://t.me/Y_VPN_bot");
@@ -76,6 +75,11 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
             : WindowState.Maximized;
         btnClose.Click += (_, _) => Close();
 
+        if (Utils.IsMacOS())
+        {
+            ApplyMacWindowStyle();
+        }
+
         this.WhenActivated(disposables =>
         {
             this.OneWayBind(ViewModel, vm => vm.RunningServerDisplay, v => v.txtRunningServerDisplay.Text).DisposeWith(disposables);
@@ -86,8 +90,14 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(enableTun =>
                 {
+                    var previousMode = _useTunMode;
                     _useTunMode = enableTun;
                     RefreshModeView();
+                    if (previousMode != enableTun && IsConnected())
+                    {
+                        _connectedAtUtc = DateTime.UtcNow;
+                        UpdateConnectionDurationText();
+                    }
                 })
                 .DisposeWith(disposables);
 
@@ -210,17 +220,33 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
     private async Task<bool> PasswordInputAsync()
     {
-        var dialog = new SudoPasswordInputView();
-        var obj = await DialogHost.Show(dialog);
-        var password = obj?.ToString();
-
-        if (password.IsNullOrEmpty())
+        if (!await _passwordDialogSemaphore.WaitAsync(0))
         {
             return false;
         }
 
-        AppManager.Instance.LinuxSudoPwd = password;
-        return true;
+        try
+        {
+            var dialog = new SudoPasswordInputView();
+            var obj = await DialogHost.Show(dialog);
+            var password = obj?.ToString();
+
+            if (password.IsNullOrEmpty())
+            {
+                return false;
+            }
+
+            AppManager.Instance.LinuxSudoPwd = password;
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+        finally
+        {
+            _passwordDialogSemaphore.Release();
+        }
     }
 
     private async Task DelegateSnackMsg(string content)
@@ -240,22 +266,22 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
         txtConnectionStatus.Text = connected ? "Подключено" : "Не подключено";
         txtConnectionStatus.Foreground = connected
-            ? new SolidColorBrush(Color.Parse("#FF8BA9"))
-            : new SolidColorBrush(Color.Parse("#B4BBCB"));
+            ? new SolidColorBrush(Color.Parse("#F2A2B8"))
+            : new SolidColorBrush(Color.Parse("#B8A0AB"));
 
         statusPill.Background = connected
-            ? new SolidColorBrush(Color.Parse("#2A1020"))
-            : new SolidColorBrush(Color.Parse("#1A1F2D"));
+            ? new SolidColorBrush(Color.Parse("#2B0E1B"))
+            : new SolidColorBrush(Color.Parse("#1A0D14"));
         statusPill.BorderBrush = connected
-            ? new SolidColorBrush(Color.Parse("#7C2743"))
-            : new SolidColorBrush(Color.Parse("#32384A"));
+            ? new SolidColorBrush(Color.Parse("#8A2B48"))
+            : new SolidColorBrush(Color.Parse("#2C1B26"));
 
         btnToggleConnection.Background = connected
-            ? new SolidColorBrush(Color.Parse("#2B0F1D"))
-            : new SolidColorBrush(Color.Parse("#121720"));
+            ? new SolidColorBrush(Color.Parse("#2B0F1B"))
+            : new SolidColorBrush(Color.Parse("#140C14"));
         btnToggleConnection.BorderBrush = connected
-            ? new SolidColorBrush(Color.Parse("#9E2345"))
-            : new SolidColorBrush(Color.Parse("#2C3347"));
+            ? new SolidColorBrush(Color.Parse("#A32C4E"))
+            : new SolidColorBrush(Color.Parse("#3A1B2A"));
 
         UpdatePowerBrandVisual(connected);
 
@@ -285,13 +311,13 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         txtPowerBrand.Text = connected ? "YourVPN" : "Y-VPN";
         txtPowerBrand.Opacity = connected ? 1.0 : 0.78;
         txtPowerBrand.Foreground = connected
-            ? new SolidColorBrush(Color.Parse("#FFF7FA"))
-            : new SolidColorBrush(Color.Parse("#9AA3B5"));
+            ? new SolidColorBrush(Color.Parse("#FFF6FA"))
+            : new SolidColorBrush(Color.Parse("#B39BA6"));
 
         txtPowerHint.Text = hintText;
         txtPowerHint.Foreground = connected
-            ? new SolidColorBrush(Color.Parse("#F2A2B8"))
-            : new SolidColorBrush(Color.Parse("#717A8E"));
+            ? new SolidColorBrush(Color.Parse("#F07A9B"))
+            : new SolidColorBrush(Color.Parse("#8F7A86"));
     }
 
     private async Task AnimatePowerBrandTransitionAsync(bool connected)
@@ -306,8 +332,8 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
         txtPowerHint.Text = connected ? "подключаем..." : "отключаем...";
         txtPowerBrand.Foreground = connected
-            ? new SolidColorBrush(Color.Parse("#FFF7FA"))
-            : new SolidColorBrush(Color.Parse("#BFC7D7"));
+            ? new SolidColorBrush(Color.Parse("#FFF6FA"))
+            : new SolidColorBrush(Color.Parse("#C6A8B5"));
 
         try
         {
@@ -348,11 +374,17 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
     private void RefreshModeView()
     {
         btnModeProxy.Foreground = _useTunMode
-            ? new SolidColorBrush(Color.Parse("#95A0B5"))
-            : new SolidColorBrush(Color.Parse("#F2F5FB"));
+            ? new SolidColorBrush(Color.Parse("#B89EAA"))
+            : new SolidColorBrush(Color.Parse("#F6F1F3"));
         btnModeTun.Foreground = _useTunMode
-            ? new SolidColorBrush(Color.Parse("#F2F5FB"))
-            : new SolidColorBrush(Color.Parse("#95A0B5"));
+            ? new SolidColorBrush(Color.Parse("#F6F1F3"))
+            : new SolidColorBrush(Color.Parse("#B89EAA"));
+
+        if (Resources.TryGetValue(_useTunMode ? "ModeThumbTun" : "ModeThumbProxy", out var thumbBrush)
+            && thumbBrush is IBrush brush)
+        {
+            modeToggleThumb.Background = brush;
+        }
 
         AnimateModeThumb(_useTunMode);
     }
@@ -445,20 +477,6 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         txtConnectionDuration.Text = $"{hours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
     }
 
-    private void ExpConfigs_StateChanged(object? sender, RoutedEventArgs e)
-    {
-        RefreshConfigsChevron();
-    }
-
-    private void RefreshConfigsChevron()
-    {
-        var isExpanded = expConfigs.IsExpanded;
-        txtConfigsChevron.Text = isExpanded ? "▾" : "▸";
-        txtConfigsChevron.Foreground = isExpanded
-            ? new SolidColorBrush(Color.Parse("#6EA8FF"))
-            : new SolidColorBrush(Color.Parse("#95A0B5"));
-    }
-
     private async Task RefreshConfigListAsync()
     {
         if (!await _refreshConfigsSemaphore.WaitAsync(0))
@@ -530,30 +548,24 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
     private async Task SetConnectionModeAsync(bool useTun)
     {
-        if (_useTunMode == useTun)
+        if (ViewModel == null || ViewModel.EnableTun == useTun)
         {
             return;
         }
 
+        if (IsConnected())
+        {
+            await ViewModel.SetQuickConnectionAsync(true, useTun);
+            _useTunMode = useTun;
+            RefreshModeView();
+            _connectedAtUtc = DateTime.UtcNow;
+            UpdateConnectionDurationText();
+            return;
+        }
+
+        ViewModel.EnableTun = useTun;
         _useTunMode = useTun;
-        _config.TunModeItem.EnableTun = useTun;
-        await ConfigHandler.SaveConfig(_config);
         RefreshModeView();
-
-        if (!IsConnected() || ViewModel == null)
-        {
-            return;
-        }
-
-        await ViewModel.SetQuickConnectionAsync(true, _useTunMode);
-        var inboundPort = AppManager.Instance.GetLocalPort(EInboundProtocol.socks);
-        if (!await WaitForSocksReadyAsync(inboundPort))
-        {
-            await ViewModel.SetQuickConnectionAsync(false, _useTunMode);
-            NoticeManager.Instance.Enqueue($"{ResUI.FailedToRunCore} (127.0.0.1:{inboundPort})");
-        }
-
-        RefreshConnectionView();
     }
 
     private async void BtnToggleConnection_Click(object? sender, RoutedEventArgs e)
@@ -801,8 +813,24 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
         RefreshModeView();
         RefreshConnectionView();
-        RefreshConfigsChevron();
         _ = RefreshConfigListAsync();
+    }
+
+    private void ApplyMacWindowStyle()
+    {
+        SystemDecorations = SystemDecorations.Full;
+        ExtendClientAreaToDecorationsHint = false;
+        ExtendClientAreaTitleBarHeightHint = 0;
+
+        topBar.IsVisible = false;
+        btnMinimize.IsVisible = false;
+        btnMaximize.IsVisible = false;
+        btnClose.IsVisible = false;
+
+        if (rootGrid.RowDefinitions.Count > 0)
+        {
+            rootGrid.RowDefinitions[0].Height = new GridLength(0);
+        }
     }
 
     private void StorageUI()

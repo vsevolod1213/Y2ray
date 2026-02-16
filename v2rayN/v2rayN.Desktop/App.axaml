@@ -32,6 +32,8 @@
                 ToolTipText="{Binding RunningServerToolTipText}">
                 <TrayIcon.Menu>
                     <NativeMenu>
+                        <NativeMenuItem Click="MenuToggleConnection_Click" Header="ВКЛЮЧИТЬ" />
+                        <NativeMenuItemSeparator />
                         <NativeMenuItem Header="Режим">
                             <NativeMenuItem.Menu>
                                 <NativeMenu>

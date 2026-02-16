@@ -18,6 +18,7 @@ public partial class StatusBarView : ReactiveUserControl<StatusBarViewModel>
 
         txtRunningServerDisplay.Tapped += TxtRunningServerDisplay_Tapped;
         txtRunningInfoDisplay.Tapped += TxtRunningServerDisplay_Tapped;
+        btnQuickToggle.Click += BtnQuickToggle_Click;
 
         this.WhenActivated(disposables =>
         {
@@ -32,6 +33,11 @@ public partial class StatusBarView : ReactiveUserControl<StatusBarViewModel>
 
             this.Bind(ViewModel, vm => vm.SystemProxySelected, v => v.cmbSystemProxy.SelectedIndex).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.SelectedRouting, v => v.cmbRoutings2.SelectedItem).DisposeWith(disposables);
+
+            this.WhenAnyValue(v => v.ViewModel!.SystemProxySelected)
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(_ => RefreshQuickToggle())
+                .DisposeWith(disposables);
         });
 
         //spEnableTun.IsVisible = (Utils.IsWindows() || AppHandler.Instance.IsAdministrator);
@@ -94,6 +100,46 @@ public partial class StatusBarView : ReactiveUserControl<StatusBarViewModel>
 
         AppManager.Instance.LinuxSudoPwd = password;
         return true;
+    }
+
+    private bool IsConnected()
+    {
+        return ViewModel != null && ViewModel.SystemProxySelected == (int)ESysProxyType.ForcedChange;
+    }
+
+    private void RefreshQuickToggle()
+    {
+        if (btnQuickToggle == null)
+        {
+            return;
+        }
+
+        var connected = IsConnected();
+        btnQuickToggle.Content = connected ? "ВЫКЛЮЧИТЬ" : "ВКЛЮЧИТЬ";
+        btnQuickToggle.Background = connected
+            ? new SolidColorBrush(Color.Parse("#2B0F1B"))
+            : new SolidColorBrush(Color.Parse("#140C14"));
+        btnQuickToggle.BorderBrush = connected
+            ? new SolidColorBrush(Color.Parse("#A32C4E"))
+            : new SolidColorBrush(Color.Parse("#3A1B2A"));
+        btnQuickToggle.Foreground = connected
+            ? new SolidColorBrush(Color.Parse("#FFF6FA"))
+            : new SolidColorBrush(Color.Parse("#E6D6DE"));
+    }
+
+    private async void BtnQuickToggle_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel == null)
+        {
+            return;
+        }
+
+        var targetState = !IsConnected();
+        var ok = await ViewModel.SetQuickConnectionAsync(targetState, ViewModel.EnableTun);
+        if (!ok)
+        {
+            RefreshQuickToggle();
+        }
     }
 
     private void TxtRunningServerDisplay_Tapped(object? sender, Avalonia.Input.TappedEventArgs e)

@@ -141,9 +141,8 @@ public class StatusBarViewModel : MyReactiveObject
                 await DoSystemProxySelected(c);
             });
 
-        this.WhenAnyValue(
-                x => x.EnableTun,
-                y => y == true)
+        this.WhenAnyValue(x => x.EnableTun)
+            .Skip(1)
             .Subscribe(async c =>
             {
                 if (_suspendReactiveActions)
@@ -560,10 +559,25 @@ public class StatusBarViewModel : MyReactiveObject
 
         if (EnableTun && AllowEnableTun() == false)
         {
+            void ResetEnableTunState()
+            {
+                _suspendReactiveActions = true;
+                try
+                {
+                    EnableTun = false;
+                }
+                finally
+                {
+                    _suspendReactiveActions = false;
+                }
+            }
+
             // When running as a non-administrator, reboot to administrator mode
             if (Utils.IsWindows())
             {
                 _config.TunModeItem.EnableTun = false;
+                ResetEnableTunState();
+                await ConfigHandler.SaveConfig(_config);
                 await AppManager.Instance.RebootAsAdmin();
                 return;
             }
@@ -573,6 +587,8 @@ public class StatusBarViewModel : MyReactiveObject
                 if (passwordResult == false)
                 {
                     _config.TunModeItem.EnableTun = false;
+                    ResetEnableTunState();
+                    await ConfigHandler.SaveConfig(_config);
                     return;
                 }
             }

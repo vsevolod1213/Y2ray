@@ -4,6 +4,8 @@ namespace v2rayN.Desktop;
 
 public partial class App : Application
 {
+    private const string ToggleOnHeader = "ВКЛЮЧИТЬ";
+    private const string ToggleOffHeader = "ВЫКЛЮЧИТЬ";
     private const string ModeMenuHeader = "Режим";
     private const string ProxyMenuHeader = "Прокси";
     private const string TunnelMenuHeader = "Туннель";
@@ -29,6 +31,16 @@ public partial class App : Application
                 AppManager.Instance.InitComponents();
                 DataContext = StatusBarViewModel.Instance;
 
+                StatusBarViewModel.Instance
+                    .WhenAnyValue(vm => vm.EnableTun)
+                    .ObserveOn(RxApp.MainThreadScheduler)
+                    .Subscribe(_ => RefreshModeMenuState());
+
+                StatusBarViewModel.Instance
+                    .WhenAnyValue(vm => vm.SystemProxySelected)
+                    .ObserveOn(RxApp.MainThreadScheduler)
+                    .Subscribe(_ => RefreshToggleConnectionMenuState());
+
                 AppEvents.ProfilesRefreshRequested
                     .AsObservable()
                     .ObserveOn(RxApp.MainThreadScheduler)
@@ -39,6 +51,7 @@ public partial class App : Application
             desktop.MainWindow = new MainWindow();
 
             RefreshModeMenuState();
+            RefreshToggleConnectionMenuState();
             _ = RefreshConfigsMenuAsync();
         }
 
@@ -72,6 +85,14 @@ public partial class App : Application
         await SetTrayModeAsync(true);
     }
 
+    private async void MenuToggleConnection_Click(object? sender, EventArgs e)
+    {
+        var vm = StatusBarViewModel.Instance;
+        var enable = !IsConnected();
+        await vm.SetQuickConnectionAsync(enable, vm.EnableTun);
+        RefreshToggleConnectionMenuState();
+    }
+
     private void RefreshModeMenuState()
     {
         var useTun = AppManager.Instance.Config.TunModeItem.EnableTun;
@@ -102,16 +123,16 @@ public partial class App : Application
             return;
         }
 
-        config.TunModeItem.EnableTun = useTun;
-        await ConfigHandler.SaveConfig(config);
+        if (IsConnected())
+        {
+            await StatusBarViewModel.Instance.SetQuickConnectionAsync(true, useTun);
+            RefreshModeMenuState();
+            RefreshToggleConnectionMenuState();
+            return;
+        }
 
         StatusBarViewModel.Instance.EnableTun = useTun;
         RefreshModeMenuState();
-
-        if (config.SystemProxyItem.SysProxyType == ESysProxyType.ForcedChange)
-        {
-            AppEvents.ReloadRequested.Publish();
-        }
     }
 
     private async Task RefreshConfigsMenuAsync()
@@ -225,6 +246,40 @@ public partial class App : Application
     {
         var rootMenu = GetTrayMenu();
         return FindMenuItem(rootMenu, ConfigurationsMenuHeader);
+    }
+
+    private void RefreshToggleConnectionMenuState()
+    {
+        var toggleItem = GetToggleMenuItem();
+        if (toggleItem == null)
+        {
+            return;
+        }
+
+        toggleItem.Header = IsConnected() ? ToggleOffHeader : ToggleOnHeader;
+    }
+
+    private NativeMenuItem? GetToggleMenuItem()
+    {
+        var rootMenu = GetTrayMenu();
+        if (rootMenu == null)
+        {
+            return null;
+        }
+
+        return rootMenu.Items
+            .OfType<NativeMenuItem>()
+            .FirstOrDefault(item =>
+            {
+                var header = item.Header?.ToString();
+                return string.Equals(header, ToggleOnHeader, StringComparison.Ordinal)
+                    || string.Equals(header, ToggleOffHeader, StringComparison.Ordinal);
+            });
+    }
+
+    private static bool IsConnected()
+    {
+        return AppManager.Instance.Config.SystemProxyItem.SysProxyType == ESysProxyType.ForcedChange;
     }
 
     private static string GetProfileDisplayName(ProfileItemModel profile)

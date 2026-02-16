@@ -134,6 +134,11 @@ public partial class CoreConfigSingboxService
                         continue;
                     }
 
+                    if (IsUdp443BlockRule(item1))
+                    {
+                        continue;
+                    }
+
                     if (item1.RuleType == ERuleType.DNS)
                     {
                         continue;
@@ -189,6 +194,21 @@ public partial class CoreConfigSingboxService
 
         lstDnsExe = new List<string>(dnsExeSet);
         lstDirectExe = new List<string>(directExeSet);
+    }
+
+    private static bool IsUdp443BlockRule(RulesItem? rule)
+    {
+        if (rule == null)
+        {
+            return false;
+        }
+
+        var port = rule.Port?.Trim();
+        var network = rule.Network?.Trim();
+        var outbound = rule.OutboundTag?.Trim();
+        return port == "443"
+            && string.Equals(network, "udp", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(outbound, "block", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<int> GenRoutingUserRule(RulesItem item, SingboxConfig singboxConfig)

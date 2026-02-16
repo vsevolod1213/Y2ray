@@ -5,12 +5,13 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="clr-namespace:ServiceLib.Models;assembly=ServiceLib"
+    xmlns:dialogHost="clr-namespace:DialogHostAvalonia;assembly=DialogHost.Avalonia"
     Title="Yvpn"
     Width="520"
     Height="760"
     MinWidth="460"
     MinHeight="680"
-    FontFamily="Segoe UI, Inter, Noto Sans, Arial, sans-serif"
+    FontFamily="SF Pro Text, SF Pro Display, Inter, Segoe UI, Noto Sans, Arial, sans-serif"
     Background="#0B0C11"
     SystemDecorations="None"
     ExtendClientAreaChromeHints="NoChrome"
@@ -21,14 +22,20 @@
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
     <Window.Resources>
-        <SolidColorBrush x:Key="BaseBackground" Color="#0B0C11" />
-        <SolidColorBrush x:Key="PanelBackground" Color="#131722" />
-        <SolidColorBrush x:Key="PanelBorder" Color="#272B38" />
-        <SolidColorBrush x:Key="PrimaryText" Color="#F4F5F7" />
-        <SolidColorBrush x:Key="SecondaryText" Color="#A8AFBD" />
-        <SolidColorBrush x:Key="AccentRed" Color="#C31845" />
-        <SolidColorBrush x:Key="AccentRedSoft" Color="#E85B81" />
-        <SolidColorBrush x:Key="AccentBlue" Color="#1778FF" />
+        <LinearGradientBrush x:Key="BaseBackground" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#0A0B0F" Offset="0" />
+            <GradientStop Color="#13070D" Offset="0.45" />
+            <GradientStop Color="#2A0B17" Offset="1" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="PanelBackground" Color="#151017" />
+        <SolidColorBrush x:Key="PanelBorder" Color="#2B1B26" />
+        <SolidColorBrush x:Key="PrimaryText" Color="#F6F1F3" />
+        <SolidColorBrush x:Key="SecondaryText" Color="#B8A0AB" />
+        <SolidColorBrush x:Key="AccentRed" Color="#C31745" />
+        <SolidColorBrush x:Key="AccentRedSoft" Color="#E0638A" />
+        <SolidColorBrush x:Key="AccentBlue" Color="#7A1E3A" />
+        <SolidColorBrush x:Key="ModeThumbProxy" Color="#2B0F1A" />
+        <SolidColorBrush x:Key="ModeThumbTun" Color="#5B1432" />
     </Window.Resources>
 
     <Window.Styles>
@@ -52,7 +59,7 @@
         </Style>
 
         <Style Selector="Button.WindowControl:pointerover">
-            <Setter Property="Background" Value="#222735" />
+            <Setter Property="Background" Value="#231826" />
         </Style>
 
         <Style Selector="Button.WindowControl.close:pointerover">
@@ -64,9 +71,9 @@
             <Setter Property="Width" Value="220" />
             <Setter Property="Height" Value="94" />
             <Setter Property="CornerRadius" Value="20" />
-            <Setter Property="Background" Value="#121720" />
-            <Setter Property="Foreground" Value="#E2E6EF" />
-            <Setter Property="BorderBrush" Value="#2C3347" />
+            <Setter Property="Background" Value="#140C14" />
+            <Setter Property="Foreground" Value="#EAE1E6" />
+            <Setter Property="BorderBrush" Value="#3B1B2A" />
             <Setter Property="BorderThickness" Value="1" />
         </Style>
 
@@ -74,12 +81,12 @@
             <Setter Property="FontSize" Value="34" />
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="LetterSpacing" Value="0.8" />
-            <Setter Property="Foreground" Value="#9AA3B5" />
+            <Setter Property="Foreground" Value="#B39BA6" />
         </Style>
 
         <Style Selector="TextBlock.PowerHint">
             <Setter Property="FontSize" Value="11" />
-            <Setter Property="Foreground" Value="#717A8E" />
+            <Setter Property="Foreground" Value="#8F7A86" />
             <Setter Property="HorizontalAlignment" Value="Center" />
         </Style>
 
@@ -88,7 +95,7 @@
             <Setter Property="CornerRadius" Value="9" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="Foreground" Value="#A7B0C2" />
+            <Setter Property="Foreground" Value="#B89EAA" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -96,8 +103,8 @@
         </Style>
 
         <Style Selector="Border.ModeToggleTrack">
-            <Setter Property="Background" Value="#111724" />
-            <Setter Property="BorderBrush" Value="#2C354A" />
+            <Setter Property="Background" Value="#140C14" />
+            <Setter Property="BorderBrush" Value="#3A1B2A" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="2" />
@@ -131,15 +138,15 @@
             <Setter Property="Padding" Value="10,0" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="Background" Value="#131826" />
-            <Setter Property="BorderBrush" Value="#2A3550" />
+            <Setter Property="Background" Value="#1B1019" />
+            <Setter Property="BorderBrush" Value="#3D1C2C" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="#6DB0FF" />
+            <Setter Property="Foreground" Value="#F07A9B" />
         </Style>
 
         <Style Selector="Expander.ConfigExpander">
-            <Setter Property="Background" Value="#151C2A" />
-            <Setter Property="BorderBrush" Value="#2D3650" />
+            <Setter Property="Background" Value="#1A1018" />
+            <Setter Property="BorderBrush" Value="#3D1E2D" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
         </Style>
@@ -160,18 +167,18 @@
         <Style Selector="ListBox.ConfigList > ListBoxItem">
             <Setter Property="Padding" Value="0" />
             <Setter Property="Margin" Value="0" />
-            <Setter Property="Background" Value="#161D2B" />
-            <Setter Property="BorderBrush" Value="#263047" />
+            <Setter Property="Background" Value="#1A1018" />
+            <Setter Property="BorderBrush" Value="#2E1C26" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
         </Style>
 
         <Style Selector="ListBox.ConfigList > ListBoxItem:pointerover">
-            <Setter Property="Background" Value="#1B2638" />
+            <Setter Property="Background" Value="#20111A" />
         </Style>
 
         <Style Selector="ListBox.ConfigList > ListBoxItem:selected">
-            <Setter Property="Background" Value="#0F4EA6" />
-            <Setter Property="BorderBrush" Value="#2D74E9" />
+            <Setter Property="Background" Value="#3A0F21" />
+            <Setter Property="BorderBrush" Value="#7C2743" />
         </Style>
 
         <Style Selector="Button.ConfigDeleteButton">
@@ -179,30 +186,31 @@
             <Setter Property="Height" Value="26" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="CornerRadius" Value="13" />
-            <Setter Property="Background" Value="#192131" />
-            <Setter Property="BorderBrush" Value="#32415F" />
+            <Setter Property="Background" Value="#1D1017" />
+            <Setter Property="BorderBrush" Value="#3A1C2B" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="#D2DBEC" />
+            <Setter Property="Foreground" Value="#E6D6DE" />
         </Style>
 
         <Style Selector="Button.ConfigDeleteButton:pointerover">
-            <Setter Property="Background" Value="#2A1420" />
-            <Setter Property="BorderBrush" Value="#8A2B48" />
-            <Setter Property="Foreground" Value="#FFD2DD" />
+            <Setter Property="Background" Value="#2A0F1B" />
+            <Setter Property="BorderBrush" Value="#9A2F50" />
+            <Setter Property="Foreground" Value="#FFE1EA" />
         </Style>
 
         <Style Selector="Button.ConfigDeleteButton:pressed">
-            <Setter Property="Background" Value="#170D14" />
+            <Setter Property="Background" Value="#140A10" />
             <Setter Property="BorderBrush" Value="#7B233F" />
         </Style>
     </Window.Styles>
 
-    <Grid Background="{StaticResource BaseBackground}" RowDefinitions="44,*">
+    <dialogHost:DialogHost>
+        <Grid x:Name="rootGrid" Background="{StaticResource BaseBackground}" RowDefinitions="44,*">
         <Border
             x:Name="topBar"
             Grid.Row="0"
-            Background="#0E111A"
-            BorderBrush="#1D2432"
+            Background="#120C12"
+            BorderBrush="#2C1B26"
             BorderThickness="0,0,0,1"
             PointerPressed="TopBar_PointerPressed">
             <Grid ColumnDefinitions="Auto,*,Auto" Margin="10,0,4,0">
@@ -255,14 +263,14 @@
                             <Border
                                 x:Name="statusPill"
                                 Padding="16,6"
-                                Background="#1A1F2D"
-                                BorderBrush="#32384A"
+                                Background="#1A0D14"
+                                BorderBrush="#2C1B26"
                                 BorderThickness="1"
                                 CornerRadius="999">
                                 <TextBlock
                                     x:Name="txtConnectionStatus"
                                     HorizontalAlignment="Center"
-                                    Foreground="#B4BBCB"
+                                    Foreground="#B8A0AB"
                                     FontWeight="SemiBold"
                                     Text="Не подключено" />
                             </Border>
@@ -278,7 +286,7 @@
                                         x:Name="modeToggleThumb"
                                         Margin="2,2,0,2"
                                         HorizontalAlignment="Left"
-                                        Background="#0F4EA6"
+                                        Background="{StaticResource ModeThumbProxy}"
                                         CornerRadius="9"
                                         Width="98" />
                                     <Grid Margin="2" ColumnDefinitions="*,*">
@@ -288,12 +296,12 @@
                                 </Grid>
                             </Border>
                             <TextBlock
-                                Foreground="#95A0B5"
+                                Foreground="{StaticResource SecondaryText}"
                                 FontSize="12"
                                 Text="Системный прокси: подходит для браузеров и приложений, которые используют прокси ОС."
                                 TextWrapping="Wrap" />
                             <TextBlock
-                                Foreground="#95A0B5"
+                                Foreground="{StaticResource SecondaryText}"
                                 FontSize="12"
                                 Text="Туннель: перехватывает весь трафик устройства через VPN."
                                 TextWrapping="Wrap" />
@@ -312,21 +320,13 @@
                                 ExpandDirection="Down"
                                 IsExpanded="True">
                                 <Expander.Header>
-                                    <Grid ColumnDefinitions="*,Auto">
+                                    <Grid>
                                         <TextBlock
                                             VerticalAlignment="Center"
                                             Foreground="{StaticResource PrimaryText}"
                                             FontSize="18"
                                             FontWeight="SemiBold"
                                             Text="КОНФИГУРАЦИИ" />
-                                        <TextBlock
-                                            x:Name="txtConfigsChevron"
-                                            Grid.Column="1"
-                                            VerticalAlignment="Center"
-                                            Foreground="#6EA8FF"
-                                            FontSize="18"
-                                            FontWeight="SemiBold"
-                                            Text="▾" />
                                     </Grid>
                                 </Expander.Header>
                                 <ListBox x:Name="lstConfigs" Classes="ConfigList" SelectionMode="Single">
@@ -376,5 +376,6 @@
                 </StackPanel>
             </ScrollViewer>
         </Grid>
-    </Grid>
+        </Grid>
+    </dialogHost:DialogHost>
 </Window>

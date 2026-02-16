@@ -25,6 +25,11 @@ public partial class CoreConfigV2rayService
                             continue;
                         }
 
+                        if (IsUdp443BlockRule(item))
+                        {
+                            continue;
+                        }
+
                         if (item.RuleType == ERuleType.DNS)
                         {
                             continue;
@@ -137,6 +142,21 @@ public partial class CoreConfigV2rayService
             Logging.SaveLog(_tag, ex);
         }
         return await Task.FromResult(0);
+    }
+
+    private static bool IsUdp443BlockRule(RulesItem? rule)
+    {
+        if (rule == null)
+        {
+            return false;
+        }
+
+        var port = rule.Port?.Trim();
+        var network = rule.Network?.Trim();
+        var outbound = rule.OutboundTag?.Trim();
+        return port == "443"
+            && string.Equals(network, "udp", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(outbound, "block", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<string?> GenRoutingUserRuleOutbound(string outboundTag, V2rayConfig v2rayConfig)

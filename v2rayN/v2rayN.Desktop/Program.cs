@@ -63,8 +63,8 @@ internal class Program
 
         if (OperatingSystem.IsMacOS())
         {
-            var showInDock = Design.IsDesignMode || AppManager.Instance.Config.UiItem.MacOSShowInDock;
-            builder = builder.With(new MacOSPlatformOptions { ShowInDock = showInDock });
+            // Always show in Dock on macOS to avoid "tray-only" invisibility.
+            builder = builder.With(new MacOSPlatformOptions { ShowInDock = true });
         }
 
         return builder;

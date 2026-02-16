@@ -11,7 +11,19 @@
     x:DataType="vms:StatusBarViewModel"
     mc:Ignorable="d">
     <Grid>
-        <DockPanel Margin="{StaticResource Margin8}">
+        <StackPanel Spacing="8">
+            <Button
+                x:Name="btnQuickToggle"
+                Margin="{StaticResource Margin8}"
+                HorizontalAlignment="Stretch"
+                Background="#2B0F1B"
+                BorderBrush="#A32C4E"
+                BorderThickness="1"
+                CornerRadius="10"
+                Foreground="#FFF6FA"
+                Padding="12,6"
+                Content="ВКЛЮЧИТЬ" />
+            <DockPanel Margin="{StaticResource Margin8}">
             <StackPanel
                 VerticalAlignment="Center"
                 Margin="{StaticResource MarginLr8}"
@@ -77,6 +89,7 @@
                 <Border Margin="1" />
                 <TextBlock x:Name="txtRunningInfoDisplay" />
             </StackPanel>
-        </DockPanel>
+            </DockPanel>
+        </StackPanel>
     </Grid>
 </UserControl>
