@@ -119,7 +119,9 @@ public partial class App : Application
 
         if (useTun && Utils.IsWindows() && !Utils.IsAdministrator())
         {
-            await AppManager.Instance.RebootAsAdmin();
+            StatusBarViewModel.Instance.EnableTun = true;
+            NoticeManager.Instance.Enqueue("Для режима ТУННЕЛЬ перезапустите приложение от имени администратора.");
+            RefreshModeMenuState();
             return;
         }
 

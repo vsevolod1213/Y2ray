@@ -103,14 +103,7 @@ public class StatusBarViewModel : MyReactiveObject
         BlSystemProxyPacVisible = Utils.IsWindows();
         BlIsNonWindows = Utils.IsNonWindows();
 
-        if (_config.TunModeItem.EnableTun && AllowEnableTun())
-        {
-            EnableTun = true;
-        }
-        else
-        {
-            _config.TunModeItem.EnableTun = EnableTun = false;
-        }
+        EnableTun = _config.TunModeItem.EnableTun;
         if (!_config.TunModeItem.EnableTun && _config.SystemProxyItem.SysProxyType == ESysProxyType.ForcedChange)
         {
             _config.SystemProxyItem.SysProxyType = ESysProxyType.ForcedClear;
@@ -406,7 +399,8 @@ public class StatusBarViewModel : MyReactiveObject
                 {
                     if (Utils.IsWindows())
                     {
-                        await AppManager.Instance.RebootAsAdmin();
+                        NoticeManager.Instance.Enqueue("Для режима ТУННЕЛЬ перезапустите приложение от имени администратора.");
+                        return false;
                     }
                     else
                     {
@@ -437,13 +431,11 @@ public class StatusBarViewModel : MyReactiveObject
                 return true;
             }
 
-            _config.TunModeItem.EnableTun = false;
             _config.SystemProxyItem.SysProxyType = ESysProxyType.ForcedClear;
 
             _suspendReactiveActions = true;
             try
             {
-                EnableTun = false;
                 SystemProxySelected = (int)ESysProxyType.ForcedClear;
             }
             finally
@@ -559,38 +551,9 @@ public class StatusBarViewModel : MyReactiveObject
 
         if (EnableTun && AllowEnableTun() == false)
         {
-            void ResetEnableTunState()
-            {
-                _suspendReactiveActions = true;
-                try
-                {
-                    EnableTun = false;
-                }
-                finally
-                {
-                    _suspendReactiveActions = false;
-                }
-            }
-
-            // When running as a non-administrator, reboot to administrator mode
             if (Utils.IsWindows())
             {
-                _config.TunModeItem.EnableTun = false;
-                ResetEnableTunState();
-                await ConfigHandler.SaveConfig(_config);
-                await AppManager.Instance.RebootAsAdmin();
-                return;
-            }
-            else
-            {
-                bool? passwordResult = await _updateView?.Invoke(EViewAction.PasswordInput, null);
-                if (passwordResult == false)
-                {
-                    _config.TunModeItem.EnableTun = false;
-                    ResetEnableTunState();
-                    await ConfigHandler.SaveConfig(_config);
-                    return;
-                }
+                NoticeManager.Instance.Enqueue("Для режима ТУННЕЛЬ перезапустите приложение от имени администратора.");
             }
         }
         await ConfigHandler.SaveConfig(_config);

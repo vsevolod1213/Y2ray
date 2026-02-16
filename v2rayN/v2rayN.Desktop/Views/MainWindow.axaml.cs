@@ -14,6 +14,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
     private const double ModeThumbProxyLeft = 2d;
     private const double ModeThumbTunLeft = 102d;
     private static readonly TimeSpan ModeThumbAnimationDuration = TimeSpan.FromMilliseconds(180);
+    private static readonly TimeSpan QuickConnectionTimeout = TimeSpan.FromSeconds(20);
 
     private static Config _config;
     private readonly WindowNotificationManager? _manager;
@@ -31,6 +32,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
     private bool _suppressConfigSelection;
     private bool _refreshConfigsPending;
     private bool _modeThumbInitialized;
+    private bool _tunnelAdminHintShown;
     private bool? _powerBrandConnectedState;
     private double _modeThumbCurrentLeft = ModeThumbProxyLeft;
     private double _modeThumbFromLeft;
@@ -555,7 +557,15 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
         if (IsConnected())
         {
-            await ViewModel.SetQuickConnectionAsync(true, useTun);
+            var switched = await TrySetQuickConnectionAsync(true, useTun);
+            if (!switched)
+            {
+                if (useTun)
+                {
+                    ShowTunnelAdminHintIfNeeded();
+                }
+                return;
+            }
             _useTunMode = useTun;
             RefreshModeView();
             _connectedAtUtc = DateTime.UtcNow;
@@ -566,6 +576,10 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         ViewModel.EnableTun = useTun;
         _useTunMode = useTun;
         RefreshModeView();
+        if (useTun)
+        {
+            ShowTunnelAdminHintIfNeeded();
+        }
     }
 
     private async void BtnToggleConnection_Click(object? sender, RoutedEventArgs e)
@@ -591,7 +605,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
                 if (server == null)
                 {
                     NoticeManager.Instance.Enqueue(ResUI.CheckServerSettings);
-                    await ViewModel.SetQuickConnectionAsync(false, _useTunMode);
+                    await TrySetQuickConnectionAsync(false, _useTunMode);
                     return;
                 }
 
@@ -603,7 +617,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
                         NoticeManager.Instance.SendMessage(msg);
                     }
                     NoticeManager.Instance.Enqueue(Utils.List2String(checkMsgs.Take(10).ToList(), true));
-                    await ViewModel.SetQuickConnectionAsync(false, _useTunMode);
+                    await TrySetQuickConnectionAsync(false, _useTunMode);
                     return;
                 }
 
@@ -613,31 +627,92 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
                 if (coreExec.IsNullOrEmpty())
                 {
                     NoticeManager.Instance.Enqueue(coreMsg);
-                    await ViewModel.SetQuickConnectionAsync(false, _useTunMode);
+                    await TrySetQuickConnectionAsync(false, _useTunMode);
                     return;
                 }
 
-                await ViewModel.SetQuickConnectionAsync(true, _useTunMode);
+                if (!await TrySetQuickConnectionAsync(true, _useTunMode))
+                {
+                    if (_useTunMode)
+                    {
+                        ShowTunnelAdminHintIfNeeded();
+                    }
+                    return;
+                }
                 var inboundPort = AppManager.Instance.GetLocalPort(EInboundProtocol.socks);
                 if (!await WaitForSocksReadyAsync(inboundPort))
                 {
-                    await ViewModel.SetQuickConnectionAsync(false, _useTunMode);
+                    await TrySetQuickConnectionAsync(false, _useTunMode);
                     NoticeManager.Instance.Enqueue($"{ResUI.FailedToRunCore} (127.0.0.1:{inboundPort})");
                     return;
                 }
             }
             else
             {
-                await ViewModel.SetQuickConnectionAsync(false, _useTunMode);
+                await TrySetQuickConnectionAsync(false, _useTunMode);
             }
 
             await Task.Delay(200);
             RefreshConnectionView();
         }
+        catch (Exception ex)
+        {
+            Logging.SaveLog("ToggleConnectionAsync", ex);
+            NoticeManager.Instance.Enqueue(ResUI.OperationFailed);
+        }
         finally
         {
             _toggleInProgress = false;
             btnToggleConnection.IsEnabled = true;
+        }
+    }
+
+    private async Task<bool> TrySetQuickConnectionAsync(bool enable, bool useTun)
+    {
+        if (ViewModel == null)
+        {
+            return false;
+        }
+
+        try
+        {
+            var operation = ViewModel.SetQuickConnectionAsync(enable, useTun);
+            var completed = await Task.WhenAny(operation, Task.Delay(QuickConnectionTimeout));
+            if (completed != operation)
+            {
+                Logging.SaveLog($"SetQuickConnectionAsync timeout. enable={enable}, useTun={useTun}");
+                NoticeManager.Instance.Enqueue("Операция подключения заняла слишком много времени. Повторите попытку.");
+                return false;
+            }
+
+            return await operation;
+        }
+        catch (Exception ex)
+        {
+            Logging.SaveLog("TrySetQuickConnectionAsync", ex);
+            NoticeManager.Instance.Enqueue(ResUI.OperationFailed);
+            return false;
+        }
+    }
+
+    private void ShowTunnelAdminHintIfNeeded()
+    {
+        if (_tunnelAdminHintShown || !_useTunMode)
+        {
+            return;
+        }
+
+        if (Utils.IsWindows() && !Utils.IsAdministrator())
+        {
+            _tunnelAdminHintShown = true;
+            NoticeManager.Instance.Enqueue("Для режима ТУННЕЛЬ перезапустите приложение от имени администратора.");
+            return;
+        }
+
+        if (Utils.IsMacOS() && AppManager.Instance.LinuxSudoPwd.IsNullOrEmpty())
+        {
+            _tunnelAdminHintShown = true;
+            NoticeManager.Instance.Enqueue("Для режима ТУННЕЛЬ запустите клиент с правами администратора или введите sudo-пароль при подключении.");
         }
     }
 
@@ -811,8 +886,15 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
             ShowHideWindow(false);
         }
 
+        if (ViewModel != null && !ViewModel.EnableTun)
+        {
+            ViewModel.EnableTun = true;
+        }
+        _useTunMode = ViewModel?.EnableTun ?? _config.TunModeItem.EnableTun;
+
         RefreshModeView();
         RefreshConnectionView();
+        ShowTunnelAdminHintIfNeeded();
         _ = RefreshConfigListAsync();
     }
 
