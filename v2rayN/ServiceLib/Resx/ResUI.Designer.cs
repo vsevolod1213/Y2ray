@@ -3941,6 +3941,33 @@ namespace ServiceLib.Resx {
                 return ResourceManager.GetString("TbSettingsLinuxSudoPasswordTip", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Do not ask again for TUN (install helper).
+        /// </summary>
+        public static string SudoRememberForTun {
+            get {
+                return ResourceManager.GetString("SudoRememberForTun", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Tunnel helper installed. Password will no longer be required..
+        /// </summary>
+        public static string SudoHelperInstalled {
+            get {
+                return ResourceManager.GetString("SudoHelperInstalled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to install tunnel helper. Check the password and try again..
+        /// </summary>
+        public static string SudoHelperInstallFailed {
+            get {
+                return ResourceManager.GetString("SudoHelperInstallFailed", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Enable Log 的本地化字符串。

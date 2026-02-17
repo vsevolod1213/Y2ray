@@ -572,7 +572,8 @@ public class StatusBarViewModel : MyReactiveObject
         }
         else if (Utils.IsMacOS())
         {
-            return AppManager.Instance.LinuxSudoPwd.IsNotEmpty();
+            return AppManager.Instance.LinuxSudoPwd.IsNotEmpty()
+                || MacSudoHelper.IsHelperInstalled(Utils.StartupPath());
         }
         return false;
     }

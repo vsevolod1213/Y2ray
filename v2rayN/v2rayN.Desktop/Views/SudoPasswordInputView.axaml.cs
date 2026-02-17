@@ -10,6 +10,8 @@ public partial class SudoPasswordInputView : UserControl
         InitializeComponent();
 
         Loaded += (s, e) => txtPassword.Focus();
+        chkRemember.IsVisible = Utils.IsMacOS();
+        chkRemember.IsChecked = false;
 
         btnSave.Click += async (_, _) => await SavePasswordAsync();
 
@@ -38,7 +40,8 @@ public partial class SudoPasswordInputView : UserControl
                 // Password verification successful, return password and close dialog
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    DialogHost.Close(null, password);
+                    var remember = chkRemember.IsVisible && chkRemember.IsChecked == true;
+                    DialogHost.Close(null, new SudoPasswordResult(password, remember));
                 });
             }
             else
@@ -78,3 +81,5 @@ public partial class SudoPasswordInputView : UserControl
         }
     }
 }
+
+public sealed record SudoPasswordResult(string Password, bool InstallHelper);

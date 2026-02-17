@@ -222,6 +222,29 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
     private async Task<bool> PasswordInputAsync()
     {
+        if (Utils.IsMacOS())
+        {
+            if (MacSudoHelper.IsHelperInstalled(Utils.StartupPath()))
+            {
+                return true;
+            }
+
+            var installed = await MacSudoHelper.InstallHelperWithSystemPromptAsync(Utils.StartupPath());
+            if (installed)
+            {
+                NoticeManager.Instance.Enqueue(ResUI.SudoHelperInstalled);
+                return true;
+            }
+
+            NoticeManager.Instance.Enqueue("Системный диалог не открылся или был отменён. Попробуйте ещё раз или введите пароль вручную.");
+            return await PasswordInputWithDialogAsync();
+        }
+
+        return await PasswordInputWithDialogAsync();
+    }
+
+    private async Task<bool> PasswordInputWithDialogAsync()
+    {
         if (!await _passwordDialogSemaphore.WaitAsync(0))
         {
             return false;
@@ -231,8 +254,31 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         {
             var dialog = new SudoPasswordInputView();
             var obj = await DialogHost.Show(dialog);
-            var password = obj?.ToString();
+            if (obj is SudoPasswordResult result)
+            {
+                if (result.Password.IsNullOrEmpty())
+                {
+                    return false;
+                }
 
+                if (Utils.IsMacOS() && result.InstallHelper)
+                {
+                    var installed = await MacSudoHelper.InstallHelperAsync(result.Password, Utils.StartupPath());
+                    if (installed)
+                    {
+                        AppManager.Instance.LinuxSudoPwd = string.Empty;
+                        NoticeManager.Instance.Enqueue(ResUI.SudoHelperInstalled);
+                        return true;
+                    }
+
+                    NoticeManager.Instance.Enqueue(ResUI.SudoHelperInstallFailed);
+                }
+
+                AppManager.Instance.LinuxSudoPwd = result.Password;
+                return true;
+            }
+
+            var password = obj?.ToString();
             if (password.IsNullOrEmpty())
             {
                 return false;
@@ -712,7 +758,10 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         if (Utils.IsMacOS() && AppManager.Instance.LinuxSudoPwd.IsNullOrEmpty())
         {
             _tunnelAdminHintShown = true;
-            NoticeManager.Instance.Enqueue("Для режима ТУННЕЛЬ запустите клиент с правами администратора или введите sudo-пароль при подключении.");
+            if (!MacSudoHelper.IsHelperInstalled(Utils.StartupPath()))
+            {
+                NoticeManager.Instance.Enqueue("Для режима ТУННЕЛЬ запустите клиент с правами администратора или введите sudo-пароль при подключении.");
+            }
         }
     }
 
