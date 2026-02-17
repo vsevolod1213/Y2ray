@@ -268,7 +268,8 @@ public class MainWindowViewModel : MyReactiveObject
         }
         await RefreshServers();
 
-        await Reload();
+        // Do not auto-connect on startup.
+        ShowClashUI = false;
     }
 
     #endregion Init

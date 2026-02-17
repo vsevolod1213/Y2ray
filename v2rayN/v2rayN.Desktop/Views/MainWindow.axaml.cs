@@ -2,7 +2,10 @@ using Avalonia.Controls.Notifications;
 using Avalonia.Input;
 using Avalonia.Threading;
 using DialogHostAvalonia;
+using Microsoft.Win32;
+using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Net.Sockets;
 using v2rayN.Desktop.Base;
 using v2rayN.Desktop.Common;
@@ -15,6 +18,27 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
     private const double ModeThumbTunLeft = 102d;
     private static readonly TimeSpan ModeThumbAnimationDuration = TimeSpan.FromMilliseconds(180);
     private static readonly TimeSpan QuickConnectionTimeout = TimeSpan.FromSeconds(20);
+    private const string InternetSettingsRegPath = @"Software\Microsoft\Windows\CurrentVersion\Internet Settings";
+    private static readonly string[] ConflictingVpnProcessMarkers =
+    [
+        "clash",
+        "nekobox",
+        "hiddify",
+        "outline",
+        "wireguard",
+        "openvpn",
+        "amnezia",
+        "protonvpn",
+        "surfshark",
+        "nordvpn",
+        "expressvpn",
+        "mullvad",
+        "v2raytun",
+        "qv2ray",
+        "v2rayu",
+        "v2rayn",
+        "warp"
+    ];
 
     private static Config _config;
     private readonly WindowNotificationManager? _manager;
@@ -32,7 +56,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
     private bool _suppressConfigSelection;
     private bool _refreshConfigsPending;
     private bool _modeThumbInitialized;
-    private bool _tunnelAdminHintShown;
+    private bool _startupDialogsShown;
     private bool? _powerBrandConnectedState;
     private double _modeThumbCurrentLeft = ModeThumbProxyLeft;
     private double _modeThumbFromLeft;
@@ -305,7 +329,49 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
     private bool IsConnected()
     {
-        return _config.SystemProxyItem.SysProxyType == ESysProxyType.ForcedChange;
+        return _config.SystemProxyItem.SysProxyType == ESysProxyType.ForcedChange && IsOwnCoreProcessRunning();
+    }
+
+    private static bool IsOwnCoreProcessRunning()
+    {
+        var startupPath = Path.GetFullPath(Utils.StartupPath());
+        string[] coreNames = ["xray", "sing-box", "mihomo", "v2ray"];
+
+        foreach (var coreName in coreNames)
+        {
+            Process[] processes;
+            try
+            {
+                processes = Process.GetProcessesByName(coreName);
+            }
+            catch
+            {
+                continue;
+            }
+
+            foreach (var process in processes)
+            {
+                try
+                {
+                    var processPath = process.MainModule?.FileName;
+                    if (string.IsNullOrWhiteSpace(processPath))
+                    {
+                        continue;
+                    }
+
+                    var fullPath = Path.GetFullPath(processPath);
+                    if (fullPath.StartsWith(startupPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        return false;
     }
 
     private void RefreshConnectionView()
@@ -596,7 +662,24 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
     private async Task SetConnectionModeAsync(bool useTun)
     {
-        if (ViewModel == null || ViewModel.EnableTun == useTun)
+        if (ViewModel == null)
+        {
+            return;
+        }
+
+        if (useTun && Utils.IsWindows() && !Utils.IsAdministrator())
+        {
+            var restartAsAdmin = await ShowAdminRequiredDialogAsync();
+            if (restartAsAdmin)
+            {
+                await AppManager.Instance.RebootAsAdmin();
+                return;
+            }
+
+            useTun = false;
+        }
+
+        if (ViewModel.EnableTun == useTun)
         {
             return;
         }
@@ -606,10 +689,6 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
             var switched = await TrySetQuickConnectionAsync(true, useTun);
             if (!switched)
             {
-                if (useTun)
-                {
-                    ShowTunnelAdminHintIfNeeded();
-                }
                 return;
             }
             _useTunMode = useTun;
@@ -622,10 +701,6 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         ViewModel.EnableTun = useTun;
         _useTunMode = useTun;
         RefreshModeView();
-        if (useTun)
-        {
-            ShowTunnelAdminHintIfNeeded();
-        }
     }
 
     private async void BtnToggleConnection_Click(object? sender, RoutedEventArgs e)
@@ -647,6 +722,27 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
             var nextStateConnected = !IsConnected();
             if (nextStateConnected)
             {
+                if (_useTunMode && Utils.IsWindows() && !Utils.IsAdministrator())
+                {
+                    var restartAsAdmin = await ShowAdminRequiredDialogAsync();
+                    if (restartAsAdmin)
+                    {
+                        await AppManager.Instance.RebootAsAdmin();
+                        return;
+                    }
+
+                    await SetConnectionModeAsync(false);
+                }
+
+                if (TryGetConnectionConflictMessage(out var conflictMessage))
+                {
+                    var disableConflict = await ShowProxyConflictDialogAsync(conflictMessage);
+                    if (disableConflict)
+                    {
+                        await CleanupConflictingProxySettingsAsync();
+                    }
+                }
+
                 var server = await ConfigHandler.GetDefaultServer(_config);
                 if (server == null)
                 {
@@ -679,10 +775,6 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
                 if (!await TrySetQuickConnectionAsync(true, _useTunMode))
                 {
-                    if (_useTunMode)
-                    {
-                        ShowTunnelAdminHintIfNeeded();
-                    }
                     return;
                 }
                 var inboundPort = AppManager.Instance.GetLocalPort(EInboundProtocol.socks);
@@ -740,27 +832,287 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
             return false;
         }
     }
-
-    private void ShowTunnelAdminHintIfNeeded()
+    private async Task<bool> ShowAdminRequiredDialogAsync()
     {
-        if (_tunnelAdminHintShown || !_useTunMode)
+        const string title = "Требуются права администратора";
+        const string message = "У приложения отсутствуют необходимые права администратора, режим \"Туннель\" будет переключен на режим \"Системный прокси\".";
+        return await ShowTwoActionDialogAsync(title, message, "Понятно", "Перезапустить");
+    }
+
+    private async Task<bool> ShowProxyConflictDialogAsync(string message)
+    {
+        return await ShowTwoActionDialogAsync("Предупреждение", message, "Пропустить", "Отключить");
+    }
+
+    private static Control BuildDialogButton(string text, bool isPrimary, Action onClick)
+    {
+        var button = new Button
         {
-            return;
+            Content = text,
+            MinHeight = 36,
+            Padding = new Thickness(14, 0),
+            CornerRadius = new CornerRadius(9),
+            FontWeight = FontWeight.SemiBold,
+            BorderThickness = new Thickness(1),
+            Background = isPrimary
+                ? new SolidColorBrush(Color.Parse("#1D78FF"))
+                : new SolidColorBrush(Color.Parse("#1A1D26")),
+            BorderBrush = isPrimary
+                ? new SolidColorBrush(Color.Parse("#2E8DFF"))
+                : new SolidColorBrush(Color.Parse("#2C3342")),
+            Foreground = isPrimary
+                ? new SolidColorBrush(Colors.White)
+                : new SolidColorBrush(Color.Parse("#D3DAEA"))
+        };
+
+        button.Click += (_, _) => onClick();
+        return button;
+    }
+
+    private async Task<bool> ShowTwoActionDialogAsync(string title, string message, string leftButtonText, string rightButtonText)
+    {
+        var titleBlock = new TextBlock
+        {
+            Text = title,
+            FontSize = 16,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = new SolidColorBrush(Color.Parse("#F5F7FA")),
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        var messageBlock = new TextBlock
+        {
+            Text = message,
+            Margin = new Thickness(0, 8, 0, 0),
+            FontSize = 13,
+            Foreground = new SolidColorBrush(Color.Parse("#B8C1D6")),
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        var buttonsGrid = new Grid
+        {
+            Margin = new Thickness(0, 18, 0, 0),
+            ColumnDefinitions = new ColumnDefinitions("*,*"),
+            ColumnSpacing = 10
+        };
+
+        var leftButton = BuildDialogButton(leftButtonText, false, () => DialogHost.Close(null, false));
+        var rightButton = BuildDialogButton(rightButtonText, true, () => DialogHost.Close(null, true));
+
+        buttonsGrid.Children.Add(leftButton);
+        Grid.SetColumn(leftButton, 0);
+        buttonsGrid.Children.Add(rightButton);
+        Grid.SetColumn(rightButton, 1);
+
+        var panel = new StackPanel { Spacing = 0 };
+        panel.Children.Add(titleBlock);
+        panel.Children.Add(messageBlock);
+        panel.Children.Add(buttonsGrid);
+
+        var container = new Border
+        {
+            Width = 380,
+            MaxWidth = 380,
+            Background = new SolidColorBrush(Color.Parse("#11141C")),
+            BorderBrush = new SolidColorBrush(Color.Parse("#242B38")),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(14),
+            Padding = new Thickness(18),
+            Child = panel
+        };
+
+        var result = await DialogHost.Show(container);
+        return result is bool accepted && accepted;
+    }
+
+    private bool TryGetConnectionConflictMessage(out string message)
+    {
+        message = string.Empty;
+        var hasProxyConflict = HasConflictingSystemProxySettings(out var proxyDetails);
+        var hasClientConflict = TryGetConflictingClientName(out var clientName);
+
+        if (!hasProxyConflict && !hasClientConflict)
+        {
+            return false;
         }
 
-        if (Utils.IsWindows() && !Utils.IsAdministrator())
+        if (hasProxyConflict && hasClientConflict)
         {
-            _tunnelAdminHintShown = true;
-            NoticeManager.Instance.Enqueue("Для режима ТУННЕЛЬ перезапустите приложение от имени администратора.");
-            return;
+            message = $"{proxyDetails}\nТакже обнаружен запущенный VPN-клиент: {clientName}.";
+            return true;
         }
 
-        if (Utils.IsMacOS() && AppManager.Instance.LinuxSudoPwd.IsNullOrEmpty())
+        if (hasProxyConflict)
         {
-            _tunnelAdminHintShown = true;
-            if (!MacSudoHelper.IsHelperInstalled(Utils.StartupPath()))
+            message = proxyDetails;
+            return true;
+        }
+
+        message = $"Обнаружен запущенный VPN-клиент: {clientName}.";
+        return true;
+    }
+
+    private bool HasConflictingSystemProxySettings(out string details)
+    {
+        details = string.Empty;
+        if (!Utils.IsWindows())
+        {
+            return false;
+        }
+
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(InternetSettingsRegPath, false);
+            if (key == null)
             {
-                NoticeManager.Instance.Enqueue("Для режима ТУННЕЛЬ запустите клиент с правами администратора или введите sudo-пароль при подключении.");
+                return false;
+            }
+
+            var proxyEnable = Convert.ToInt32(key.GetValue("ProxyEnable", 0), CultureInfo.InvariantCulture) == 1;
+            var proxyServer = key.GetValue("ProxyServer", string.Empty)?.ToString() ?? string.Empty;
+            var autoConfigUrl = key.GetValue("AutoConfigURL", string.Empty)?.ToString() ?? string.Empty;
+
+            if (proxyEnable)
+            {
+                var socksPort = AppManager.Instance.GetLocalPort(EInboundProtocol.socks);
+                var mixedPort = AppManager.Instance.GetLocalPort(EInboundProtocol.mixed);
+
+                var isLoopbackProxy = proxyServer.Contains("127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                                      || proxyServer.Contains("localhost", StringComparison.OrdinalIgnoreCase);
+                var hasExpectedPort = proxyServer.Contains($":{socksPort}", StringComparison.OrdinalIgnoreCase)
+                                      || proxyServer.Contains($":{mixedPort}", StringComparison.OrdinalIgnoreCase);
+
+                if (!isLoopbackProxy || !hasExpectedPort)
+                {
+                    details = "Обнаружены активированные настройки прокси.";
+                    return true;
+                }
+
+                if (!IsOwnCoreProcessRunning())
+                {
+                    details = "Обнаружены активированные настройки прокси, но клиент не подключен.";
+                    return true;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(autoConfigUrl)
+                && !autoConfigUrl.Contains("127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                && !autoConfigUrl.Contains("localhost", StringComparison.OrdinalIgnoreCase))
+            {
+                details = "Обнаружен активный PAC-скрипт прокси.";
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logging.SaveLog("HasConflictingSystemProxySettings", ex);
+        }
+
+        return false;
+    }
+
+    private bool TryGetConflictingClientName(out string processName)
+    {
+        processName = string.Empty;
+        var startupPath = Path.GetFullPath(Utils.StartupPath());
+
+        try
+        {
+            foreach (var process in Process.GetProcesses())
+            {
+                try
+                {
+                    if (process.Id == Environment.ProcessId)
+                    {
+                        continue;
+                    }
+
+                    var name = process.ProcessName;
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        continue;
+                    }
+
+                    var normalized = name.ToLowerInvariant();
+                    if (!ConflictingVpnProcessMarkers.Any(marker => normalized.Contains(marker, StringComparison.Ordinal)))
+                    {
+                        continue;
+                    }
+
+                    string? processPath = null;
+                    try
+                    {
+                        processPath = process.MainModule?.FileName;
+                    }
+                    catch
+                    {
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(processPath))
+                    {
+                        var normalizedPath = Path.GetFullPath(processPath);
+                        if (normalizedPath.StartsWith(startupPath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+                    }
+
+                    processName = name;
+                    return true;
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    process.Dispose();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logging.SaveLog("TryGetConflictingClientName", ex);
+        }
+
+        return false;
+    }
+
+    private async Task CleanupConflictingProxySettingsAsync()
+    {
+        await TrySetQuickConnectionAsync(false, _useTunMode);
+        RefreshConnectionView();
+    }
+
+    private async Task EnsureStartupStateAsync()
+    {
+        if (_startupDialogsShown)
+        {
+            return;
+        }
+
+        _startupDialogsShown = true;
+
+        await TrySetQuickConnectionAsync(false, _useTunMode);
+        RefreshConnectionView();
+
+        if (_useTunMode && Utils.IsWindows() && !Utils.IsAdministrator())
+        {
+            var restartAsAdmin = await ShowAdminRequiredDialogAsync();
+            if (restartAsAdmin)
+            {
+                await AppManager.Instance.RebootAsAdmin();
+                return;
+            }
+
+            await SetConnectionModeAsync(false);
+        }
+
+        if (TryGetConnectionConflictMessage(out var conflictMessage))
+        {
+            var disableConflict = await ShowProxyConflictDialogAsync(conflictMessage);
+            if (disableConflict)
+            {
+                await CleanupConflictingProxySettingsAsync();
             }
         }
     }
@@ -927,7 +1279,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         AppManager.Instance.ShowInTaskbar = bl;
     }
 
-    protected override void OnLoaded(object? sender, RoutedEventArgs e)
+    protected override async void OnLoaded(object? sender, RoutedEventArgs e)
     {
         base.OnLoaded(sender, e);
         if (_config.UiItem.AutoHideStartup)
@@ -935,15 +1287,11 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
             ShowHideWindow(false);
         }
 
-        if (ViewModel != null && !ViewModel.EnableTun)
-        {
-            ViewModel.EnableTun = true;
-        }
         _useTunMode = ViewModel?.EnableTun ?? _config.TunModeItem.EnableTun;
 
         RefreshModeView();
         RefreshConnectionView();
-        ShowTunnelAdminHintIfNeeded();
+        await EnsureStartupStateAsync();
         _ = RefreshConfigListAsync();
     }
 

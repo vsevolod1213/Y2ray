@@ -245,7 +245,16 @@ public class StatusBarViewModel : MyReactiveObject
         await ConfigHandler.InitBuiltinRouting(_config);
         await RefreshRoutingsMenu();
         await InboundDisplayStatus();
+
+        // Always start in disconnected state.
+        if (_config.SystemProxyItem.SysProxyType == ESysProxyType.ForcedChange)
+        {
+            _config.SystemProxyItem.SysProxyType = ESysProxyType.ForcedClear;
+            await ConfigHandler.SaveConfig(_config);
+        }
+
         await ChangeSystemProxyAsync(_config.SystemProxyItem.SysProxyType, true);
+        SystemProxySelected = (int)_config.SystemProxyItem.SysProxyType;
     }
 
     public void InitUpdateView(Func<EViewAction, object?, Task<bool>>? updateView)
@@ -445,7 +454,7 @@ public class StatusBarViewModel : MyReactiveObject
 
             await SysProxyHandler.UpdateSysProxy(_config, false);
             await ConfigHandler.SaveConfig(_config);
-            AppEvents.ReloadRequested.Publish();
+            await CoreManager.Instance.CoreStop();
             return true;
         }
         finally
@@ -557,7 +566,10 @@ public class StatusBarViewModel : MyReactiveObject
             }
         }
         await ConfigHandler.SaveConfig(_config);
-        AppEvents.ReloadRequested.Publish();
+        if (_config.SystemProxyItem.SysProxyType == ESysProxyType.ForcedChange)
+        {
+            AppEvents.ReloadRequested.Publish();
+        }
     }
 
     private bool AllowEnableTun()

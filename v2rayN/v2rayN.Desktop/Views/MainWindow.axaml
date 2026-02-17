@@ -149,12 +149,21 @@
             <Setter Property="BorderBrush" Value="#3D1E2D" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryText}" />
         </Style>
 
         <Style Selector="Expander.ConfigExpander > Border">
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <Style Selector="Expander.ConfigExpander /template/ PathIcon">
+            <Setter Property="Foreground" Value="{StaticResource PrimaryText}" />
+        </Style>
+
+        <Style Selector="Expander.ConfigExpander /template/ Path">
+            <Setter Property="Fill" Value="{StaticResource PrimaryText}" />
         </Style>
 
         <Style Selector="ListBox.ConfigList">
@@ -170,6 +179,7 @@
             <Setter Property="Background" Value="#1A1018" />
             <Setter Property="BorderBrush" Value="#2E1C26" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryText}" />
         </Style>
 
         <Style Selector="ListBox.ConfigList > ListBoxItem:pointerover">
@@ -179,6 +189,7 @@
         <Style Selector="ListBox.ConfigList > ListBoxItem:selected">
             <Setter Property="Background" Value="#3A0F21" />
             <Setter Property="BorderBrush" Value="#7C2743" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryText}" />
         </Style>
 
         <Style Selector="Button.ConfigDeleteButton">
@@ -336,6 +347,7 @@
                                                 <TextBlock
                                                     Margin="12,10,8,10"
                                                     VerticalAlignment="Center"
+                                                    Foreground="{StaticResource PrimaryText}"
                                                     Text="{Binding Text}"
                                                     TextWrapping="Wrap" />
                                                 <Button
