@@ -4220,6 +4220,15 @@ namespace ServiceLib.Resx {
                 return ResourceManager.GetString("TbSettingsSubConvert", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 Connect API base URL 的本地化字符串。
+        /// </summary>
+        public static string TbSettingsConnectApiUrl {
+            get {
+                return ResourceManager.GetString("TbSettingsConnectApiUrl", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 System proxy settings 的本地化字符串。

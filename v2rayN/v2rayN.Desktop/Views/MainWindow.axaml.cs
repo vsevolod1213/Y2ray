@@ -226,6 +226,14 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
                 await _mainWindowViewModel.AddServerViaClipboardAsync(clipboardData);
                 return true;
 
+            case EViewAction.ShowYesNo:
+                if (obj is not string msg || msg.IsNullOrEmpty())
+                {
+                    return false;
+                }
+
+                return await UI.ShowYesNo(this, msg) == ButtonResult.Yes;
+
             case EViewAction.PasswordInput:
                 return await PasswordInputAsync();
         }

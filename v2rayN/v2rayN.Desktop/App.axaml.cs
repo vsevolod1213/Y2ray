@@ -50,6 +50,60 @@ public partial class App : Application
             desktop.Exit += OnExit;
             desktop.MainWindow = new MainWindow();
 
+            DeepLinkService.StartServer(url =>
+            {
+                AppEvents.DeepLinkRequested.Publish(url);
+                return Task.CompletedTask;
+            });
+            _ = DeepLinkService.HandleStartupUrlAsync(url =>
+            {
+                AppEvents.DeepLinkRequested.Publish(url);
+                return Task.CompletedTask;
+            });
+
+            if (Application.Current is { } app)
+            {
+                app.UrlsOpened += (_, e) =>
+                {
+                    if (e?.Urls == null)
+                    {
+                        return;
+                    }
+
+                    foreach (var uri in e.Urls)
+                    {
+                        var url = uri?.ToString();
+                        if (url.IsNullOrEmpty())
+                        {
+                            continue;
+                        }
+
+                        AppEvents.ShowHideWindowRequested.Publish(true);
+                        AppEvents.DeepLinkRequested.Publish(url);
+                    }
+                };
+            }
+
+            if (desktop is IActivatableLifetime activatable)
+            {
+                activatable.Activated += (_, e) =>
+                {
+                    if (e.Kind == ActivationKind.OpenUri)
+                    {
+                        var url = DeepLinkService.ExtractUrl(desktop.Args);
+                        if (!url.IsNullOrEmpty())
+                        {
+                            AppEvents.ShowHideWindowRequested.Publish(true);
+                            AppEvents.DeepLinkRequested.Publish(url);
+                        }
+                    }
+                    else if (e.Kind == ActivationKind.Reopen)
+                    {
+                        AppEvents.ShowHideWindowRequested.Publish(true);
+                    }
+                };
+            }
+
             RefreshModeMenuState();
             RefreshToggleConnectionMenuState();
             _ = RefreshConfigsMenuAsync();

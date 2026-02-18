@@ -62,6 +62,7 @@ public class OptionSettingViewModel : MyReactiveObject
     [Reactive] public int MixedConcurrencyCount { get; set; }
     [Reactive] public bool EnableHWA { get; set; }
     [Reactive] public string SubConvertUrl { get; set; }
+    [Reactive] public string ConnectApiBaseUrl { get; set; }
     [Reactive] public int MainGirdOrientation { get; set; }
     [Reactive] public string GeoFileSourceUrl { get; set; }
     [Reactive] public string SrsFileSourceUrl { get; set; }
@@ -196,6 +197,7 @@ public class OptionSettingViewModel : MyReactiveObject
         SpeedPingTestUrl = _config.SpeedTestItem.SpeedPingTestUrl;
         EnableHWA = _config.GuiItem.EnableHWA;
         SubConvertUrl = _config.ConstItem.SubConvertUrl;
+        ConnectApiBaseUrl = _config.ConstItem.ConnectApiBaseUrl;
         MainGirdOrientation = (int)_config.UiItem.MainGirdOrientation;
         GeoFileSourceUrl = _config.ConstItem.GeoSourceUrl;
         SrsFileSourceUrl = _config.ConstItem.SrsSourceUrl;
@@ -362,6 +364,7 @@ public class OptionSettingViewModel : MyReactiveObject
         _config.SpeedTestItem.SpeedPingTestUrl = SpeedPingTestUrl;
         _config.GuiItem.EnableHWA = EnableHWA;
         _config.ConstItem.SubConvertUrl = SubConvertUrl;
+        _config.ConstItem.ConnectApiBaseUrl = ConnectApiBaseUrl;
         _config.UiItem.MainGirdOrientation = (EGirdOrientation)MainGirdOrientation;
         _config.ConstItem.GeoSourceUrl = GeoFileSourceUrl;
         _config.ConstItem.SrsSourceUrl = SrsFileSourceUrl;

@@ -744,6 +744,9 @@
   <data name="TbSettingsSubConvert" xml:space="preserve">
     <value>URL конвертации подписок</value>
   </data>
+  <data name="TbSettingsConnectApiUrl" xml:space="preserve">
+    <value>Базовый URL API подключения</value>
+  </data>
   <data name="TbSettingsSystemproxy" xml:space="preserve">
     <value>Настройки системного прокси</value>
   </data>

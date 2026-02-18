@@ -45,6 +45,17 @@ cat >"$PackagePath/v2rayN.app/Contents/Info.plist" <<-EOF
   <true/>
   <key>LSMinimumSystemVersion</key>
   <string>12.7</string>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>yvpn</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>yvpn</string>
+      </array>
+    </dict>
+  </array>
 </dict>
 </plist>
 EOF

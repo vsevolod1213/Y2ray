@@ -744,6 +744,9 @@
   <data name="TbSettingsSubConvert" xml:space="preserve">
     <value>Subscription conversion URL</value>
   </data>
+  <data name="TbSettingsConnectApiUrl" xml:space="preserve">
+    <value>Connect API base URL</value>
+  </data>
   <data name="TbSettingsSystemproxy" xml:space="preserve">
     <value>System proxy settings</value>
   </data>

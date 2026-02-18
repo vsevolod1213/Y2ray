@@ -246,6 +246,11 @@ public class MainWindowViewModel : MyReactiveObject
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(async blProxy => await UpdateSubscriptionProcess("", blProxy));
 
+        AppEvents.DeepLinkRequested
+            .AsObservable()
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(async url => await HandleDeepLinkAsync(url));
+
         #endregion AppEvents
 
         _ = Init();
@@ -438,6 +443,108 @@ public class MainWindowViewModel : MyReactiveObject
     }
 
     #endregion Add Servers
+
+    #region Deep Link
+
+    private readonly SemaphoreSlim _deepLinkSemaphore = new(1, 1);
+
+    private async Task HandleDeepLinkAsync(string? url)
+    {
+        if (url.IsNullOrEmpty())
+        {
+            return;
+        }
+
+        await _deepLinkSemaphore.WaitAsync();
+        try
+        {
+            if (!ConnectLinkHelper.TryExtractToken(url, out var token))
+            {
+                NoticeManager.Instance.Enqueue("Некорректная ссылка подключения.");
+                return;
+            }
+
+            var baseUrl = _config.ConstItem.ConnectApiBaseUrl;
+            if (baseUrl.IsNullOrEmpty())
+            {
+                NoticeManager.Instance.Enqueue("Не указан адрес API. Укажите его в настройках.");
+                return;
+            }
+
+            NoticeManager.Instance.Enqueue("Подключаем...");
+
+            var result = await ConnectTokenService.ResolveAsync(token, baseUrl);
+            switch (result.Status)
+            {
+                case ConnectTokenStatus.Ok:
+                    await ImportConfigFromTokenAsync(result.Config);
+                    break;
+
+                case ConnectTokenStatus.InvalidToken:
+                case ConnectTokenStatus.ExpiredOrUsed:
+                    NoticeManager.Instance.Enqueue("Токен недействителен или истёк. Запросите новый в боте или на сайте.");
+                    break;
+
+                case ConnectTokenStatus.NotConfigured:
+                    NoticeManager.Instance.Enqueue("Не указан адрес API. Укажите его в настройках.");
+                    break;
+
+                case ConnectTokenStatus.NetworkError:
+                    NoticeManager.Instance.Enqueue("Не удалось получить конфигурацию. Проверьте подключение к интернету.");
+                    break;
+
+                case ConnectTokenStatus.ServerError:
+                case ConnectTokenStatus.InvalidResponse:
+                default:
+                    NoticeManager.Instance.Enqueue("Не удалось получить конфигурацию. Попробуйте позже.");
+                    break;
+            }
+        }
+        finally
+        {
+            _deepLinkSemaphore.Release();
+        }
+    }
+
+    private async Task ImportConfigFromTokenAsync(string? config)
+    {
+        if (config.IsNullOrEmpty())
+        {
+            NoticeManager.Instance.Enqueue("Ответ сервера не содержит конфигурацию.");
+            return;
+        }
+
+        var ret = await ConfigHandler.AddBatchServers(_config, config, _config.SubIndexId, false);
+        if (ret > 0)
+        {
+            RefreshSubscriptions();
+            await RefreshServers();
+
+            var connectNow = await _updateView?.Invoke(EViewAction.ShowYesNo, "Конфигурация добавлена. Подключить сейчас?");
+            if (connectNow == true)
+            {
+                await StatusBarViewModel.Instance.SetQuickConnectionAsync(true, _config.TunModeItem.EnableTun);
+            }
+            else
+            {
+                NoticeManager.Instance.Enqueue("Конфигурация добавлена.");
+            }
+
+            return;
+        }
+
+        var enterManual = await _updateView?.Invoke(EViewAction.ShowYesNo, "Не удалось импортировать конфигурацию. Ввести вручную?");
+        if (enterManual == true)
+        {
+            await AddServerAsync(EConfigType.VLESS);
+        }
+        else
+        {
+            NoticeManager.Instance.Enqueue(ResUI.OperationFailed);
+        }
+    }
+
+    #endregion Deep Link
 
     #region Subscription
 

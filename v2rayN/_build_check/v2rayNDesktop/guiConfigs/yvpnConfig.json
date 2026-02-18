@@ -83,7 +83,8 @@
     "SubConvertUrl": null,
     "GeoSourceUrl": null,
     "SrsSourceUrl": null,
-    "RouteRulesTemplateSourceUrl": null
+    "RouteRulesTemplateSourceUrl": null,
+    "ConnectApiBaseUrl": "http://127.0.0.1:8000"
   },
   "SpeedTestItem": {
     "SpeedTestTimeout": 10,

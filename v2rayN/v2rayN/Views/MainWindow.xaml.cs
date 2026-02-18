@@ -163,6 +163,15 @@ public partial class MainWindow
 
         AddHelpMenuItem();
         WindowsManager.Instance.RegisterGlobalHotkey(_config, OnHotkeyHandler, null);
+
+        DeepLinkService.StartServer(OnDeepLinkReceivedAsync);
+        _ = DeepLinkService.HandleStartupUrlAsync(OnDeepLinkReceivedAsync);
+    }
+
+    private Task OnDeepLinkReceivedAsync(string url)
+    {
+        AppEvents.DeepLinkRequested.Publish(url);
+        return Task.CompletedTask;
     }
 
     #region Event
@@ -185,6 +194,14 @@ public partial class MainWindow
     {
         switch (action)
         {
+            case EViewAction.ShowYesNo:
+                if (obj is not string message || message.IsNullOrEmpty())
+                {
+                    return false;
+                }
+
+                return UI.ShowYesNo(message) == MessageBoxResult.Yes;
+
             case EViewAction.AddServerWindow:
                 if (obj is null)
                 {

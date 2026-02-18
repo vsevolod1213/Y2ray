@@ -20,12 +20,15 @@ public partial class App : Application
     /// <param name="e"></param>
     protected override void OnStartup(StartupEventArgs e)
     {
+        DeepLinkService.CaptureStartupArgs(e.Args);
+
         var exePathKey = Utils.GetMd5(Utils.GetExePath());
 
         var rebootas = (e.Args ?? Array.Empty<string>()).Any(t => t == Global.RebootAs);
         ProgramStarted = new EventWaitHandle(false, EventResetMode.AutoReset, exePathKey, out var bCreatedNew);
         if (!rebootas && !bCreatedNew)
         {
+            DeepLinkService.SendToRunningInstanceAsync(e.Args).GetAwaiter().GetResult();
             ProgramStarted.Set();
             Environment.Exit(0);
             return;
@@ -39,6 +42,7 @@ public partial class App : Application
         }
 
         AppManager.Instance.InitComponents();
+        UriSchemeHelper.EnsureRegistered();
         base.OnStartup(e);
     }
 

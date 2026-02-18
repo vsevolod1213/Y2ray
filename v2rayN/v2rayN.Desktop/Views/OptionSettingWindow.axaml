@@ -340,7 +340,7 @@
                     <Grid
                         Margin="{StaticResource Margin4}"
                         ColumnDefinitions="Auto,Auto,*"
-                        RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                        RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
 
                         <TextBlock
                             x:Name="tbAutoRun"
@@ -684,6 +684,20 @@
                             VerticalAlignment="Center"
                             Text="{x:Static resx:ResUI.TbSettingsChinaUserTip}"
                             TextWrapping="Wrap" />
+
+                        <TextBlock
+                            Grid.Row="26"
+                            Grid.Column="0"
+                            Margin="{StaticResource Margin4}"
+                            VerticalAlignment="Center"
+                            Text="{x:Static resx:ResUI.TbSettingsConnectApiUrl}" />
+                        <TextBox
+                            x:Name="txtConnectApiBaseUrl"
+                            Grid.Row="26"
+                            Grid.Column="1"
+                            Width="300"
+                            Margin="{StaticResource Margin4}"
+                            TextWrapping="NoWrap" />
 
                     </Grid>
                 </ScrollViewer>

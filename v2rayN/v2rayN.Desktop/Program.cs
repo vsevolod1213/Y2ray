@@ -1,3 +1,4 @@
+using Avalonia.Controls.ApplicationLifetimes;
 using v2rayN.Desktop.Common;
 
 namespace v2rayN.Desktop;
@@ -24,6 +25,8 @@ internal class Program
 
     private static bool OnStartup(string[]? Args)
     {
+        DeepLinkService.CaptureStartupArgs(Args);
+
         if (Utils.IsWindows())
         {
             var exePathKey = Utils.GetMd5(Utils.GetExePath());
@@ -31,6 +34,7 @@ internal class Program
             ProgramStarted = new EventWaitHandle(false, EventResetMode.AutoReset, exePathKey, out var bCreatedNew);
             if (!rebootas && !bCreatedNew)
             {
+                DeepLinkService.SendToRunningInstanceAsync(Args).GetAwaiter().GetResult();
                 ProgramStarted.Set();
                 return false;
             }
@@ -40,6 +44,7 @@ internal class Program
             _ = new Mutex(true, Global.AppName, out var bOnlyOneInstance);
             if (!bOnlyOneInstance)
             {
+                DeepLinkService.SendToRunningInstanceAsync(Args).GetAwaiter().GetResult();
                 return false;
             }
         }
@@ -48,6 +53,8 @@ internal class Program
         {
             return false;
         }
+
+        UriSchemeHelper.EnsureRegistered();
         return true;
     }
 
@@ -59,7 +66,12 @@ internal class Program
            //.WithInterFont()
            .WithFontByDefault()
            .LogToTrace()
-           .UseReactiveUI();
+           .UseReactiveUI()
+           // Ensure macOS URL activations are processed into command-line args.
+           .With(new ClassicDesktopStyleApplicationLifetimeOptions
+           {
+               ProcessUrlActivationCommandLine = true
+           });
 
         if (OperatingSystem.IsMacOS())
         {
