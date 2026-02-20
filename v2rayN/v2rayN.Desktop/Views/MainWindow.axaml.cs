@@ -132,6 +132,12 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
                 .Subscribe(_ => RefreshConnectionView())
                 .DisposeWith(disposables);
 
+            AppEvents.ConnectionStateRefreshRequested
+                .AsObservable()
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(_ => RefreshConnectionView())
+                .DisposeWith(disposables);
+
             AppEvents.SendSnackMsgRequested
                 .AsObservable()
                 .ObserveOn(RxApp.MainThreadScheduler)
@@ -656,6 +662,8 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         {
             AppEvents.ReloadRequested.Publish();
         }
+
+        AppEvents.ProfilesRefreshRequested.Publish();
     }
 
     private async void BtnModeProxy_Click(object? sender, RoutedEventArgs e)

@@ -29,6 +29,11 @@ public static class MacSudoHelper
             return false;
         }
 
+        if (!IsRunScriptUpToDate())
+        {
+            return false;
+        }
+
         if (expectedBasePath.IsNullOrEmpty())
         {
             return true;
@@ -42,8 +47,8 @@ public static class MacSudoHelper
                 return false;
             }
 
-            var allowedFull = Path.GetFullPath(allowed);
-            var expectedFull = Path.GetFullPath(expectedBasePath);
+            var allowedFull = Path.TrimEndingDirectorySeparator(Path.GetFullPath(allowed));
+            var expectedFull = Path.TrimEndingDirectorySeparator(Path.GetFullPath(expectedBasePath));
             return string.Equals(allowedFull, expectedFull, StringComparison.OrdinalIgnoreCase);
         }
         catch
@@ -69,7 +74,7 @@ public static class MacSudoHelper
 
             File.WriteAllText(tempRun, BuildRunScript());
             File.WriteAllText(tempKill, EmbedUtils.GetEmbedText(Global.KillAsSudoOSXShellFileName));
-            var normalizedBasePath = Path.GetFullPath(basePath);
+            var normalizedBasePath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(basePath));
             File.WriteAllText(tempAllowed, normalizedBasePath);
             File.WriteAllText(tempSudoers, BuildSudoers(Environment.UserName));
 
@@ -128,7 +133,7 @@ public static class MacSudoHelper
             var tempSudoers = Path.Combine(tempDir, "yvpn_sudoers");
             var tempInstall = Path.Combine(tempDir, "install_helper.sh");
 
-            var normalizedBasePath = Path.GetFullPath(basePath);
+            var normalizedBasePath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(basePath));
             File.WriteAllText(tempRun, BuildRunScript());
             File.WriteAllText(tempKill, EmbedUtils.GetEmbedText(Global.KillAsSudoOSXShellFileName));
             File.WriteAllText(tempAllowed, normalizedBasePath);
@@ -159,13 +164,15 @@ public static class MacSudoHelper
             }
 
             var installCommand = $"/bin/bash {tempInstall}";
-            var appleScript = $"do shell script {AppleScriptQuote(installCommand)} with administrator privileges";
+            var prompt = "Yvpn: для режима «Туннель» нужны права администратора. Введите пароль macOS.";
+            var appleScript = $"do shell script {AppleScriptQuote(installCommand)} with prompt {AppleScriptQuote(prompt)} with administrator privileges";
             var result = await Cli.Wrap("/usr/bin/osascript")
                 .WithArguments(new List<string> { "-e", appleScript })
                 .ExecuteBufferedAsync();
 
             if (result.ExitCode != 0)
             {
+                Logging.SaveLog($"MacSudoHelper: osascript failed ({result.ExitCode}) {result.StandardError} {result.StandardOutput}");
                 return false;
             }
 
@@ -187,6 +194,7 @@ public static class MacSudoHelper
         sb.AppendLine("if [[ ! -f \"$ALLOWED_PATH_FILE\" ]]; then");
         sb.AppendLine("  echo \"allowed_path missing\"; exit 1; fi");
         sb.AppendLine("BASE=$(cat \"$ALLOWED_PATH_FILE\")");
+        sb.AppendLine("BASE=${BASE%/}");
         sb.AppendLine();
         sb.AppendLine("CORE=${1:-}");
         sb.AppendLine("CONFIG=${2:-}");
@@ -206,6 +214,19 @@ public static class MacSudoHelper
         sb.AppendLine("else");
         sb.AppendLine("  echo \"Denied core name: $CORE_NAME\"; exit 1; fi");
         return sb.ToString();
+    }
+
+    private static bool IsRunScriptUpToDate()
+    {
+        try
+        {
+            var content = File.ReadAllText(RunScriptPath);
+            return content.Contains("BASE=${BASE%/}", StringComparison.Ordinal);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static string BuildSudoers(string user)

@@ -290,31 +290,40 @@
 
                     <Border x:Name="sectionModeCard" Classes="Card">
                         <StackPanel Spacing="8">
-                            <TextBlock Foreground="{StaticResource PrimaryText}" FontSize="18" FontWeight="SemiBold" Text="Режим" />
-                            <Border Classes="ModeToggleTrack">
-                                <Grid>
-                                    <Border
-                                        x:Name="modeToggleThumb"
-                                        Margin="2,2,0,2"
-                                        HorizontalAlignment="Left"
-                                        Background="{StaticResource ModeThumbProxy}"
-                                        CornerRadius="9"
-                                        Width="98" />
-                                    <Grid Margin="2" ColumnDefinitions="*,*">
-                                        <Button x:Name="btnModeProxy" Grid.Column="0" Classes="ModeButton" Content="ПРОКСИ" />
-                                        <Button x:Name="btnModeTun" Grid.Column="1" Classes="ModeButton" Content="ТУННЕЛЬ" />
+                            <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                                <TextBlock
+                                    Grid.Column="0"
+                                    Margin="0,0,12,0"
+                                    VerticalAlignment="Center"
+                                    Foreground="{StaticResource PrimaryText}"
+                                    FontSize="18"
+                                    FontWeight="SemiBold"
+                                    Text="Режим:" />
+                                <Border Grid.Column="1" Classes="ModeToggleTrack" HorizontalAlignment="Right">
+                                    <Grid>
+                                        <Border
+                                            x:Name="modeToggleThumb"
+                                            Margin="2,2,0,2"
+                                            HorizontalAlignment="Left"
+                                            Background="{StaticResource ModeThumbProxy}"
+                                            CornerRadius="9"
+                                            Width="98" />
+                                        <Grid Margin="2" ColumnDefinitions="*,*">
+                                            <Button x:Name="btnModeProxy" Grid.Column="0" Classes="ModeButton" Content="ПРОКСИ" />
+                                            <Button x:Name="btnModeTun" Grid.Column="1" Classes="ModeButton" Content="ТУННЕЛЬ" />
+                                        </Grid>
                                     </Grid>
-                                </Grid>
-                            </Border>
+                                </Border>
+                            </Grid>
                             <TextBlock
                                 Foreground="{StaticResource SecondaryText}"
                                 FontSize="12"
-                                Text="Системный прокси: подходит для браузеров и приложений, которые используют прокси ОС."
+                                Text="Прокси: только приложения с поддержкой прокси (браузеры, Telegram с прокси)."
                                 TextWrapping="Wrap" />
                             <TextBlock
                                 Foreground="{StaticResource SecondaryText}"
                                 FontSize="12"
-                                Text="Туннель: перехватывает весь трафик устройства через VPN."
+                                Text="Туннель: весь трафик через VPN (звонки, игры, системные сервисы)."
                                 TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>

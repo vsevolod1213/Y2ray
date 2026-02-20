@@ -3,6 +3,7 @@ namespace ServiceLib.Events;
 public static class AppEvents
 {
     public static readonly EventChannel<Unit> ReloadRequested = new();
+    public static readonly EventChannel<Unit> ConnectionStateRefreshRequested = new();
     public static readonly EventChannel<bool?> ShowHideWindowRequested = new();
     public static readonly EventChannel<Unit> AddServerViaScanRequested = new();
     public static readonly EventChannel<Unit> AddServerViaClipboardRequested = new();

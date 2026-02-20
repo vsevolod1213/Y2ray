@@ -674,6 +674,7 @@ public class MainWindowViewModel : MyReactiveObject
             }
 
             ReloadResult(showClashUI);
+            AppEvents.ConnectionStateRefreshRequested.Publish();
         }
         finally
         {

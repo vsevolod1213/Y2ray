@@ -437,6 +437,7 @@ public class StatusBarViewModel : MyReactiveObject
 
                 await ConfigHandler.SaveConfig(_config);
                 AppEvents.ReloadRequested.Publish();
+                AppEvents.ConnectionStateRefreshRequested.Publish();
                 return true;
             }
 
@@ -455,6 +456,7 @@ public class StatusBarViewModel : MyReactiveObject
             await SysProxyHandler.UpdateSysProxy(_config, false);
             await ConfigHandler.SaveConfig(_config);
             await CoreManager.Instance.CoreStop();
+            AppEvents.ConnectionStateRefreshRequested.Publish();
             return true;
         }
         finally

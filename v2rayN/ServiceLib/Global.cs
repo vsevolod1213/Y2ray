@@ -57,6 +57,8 @@ public class Global
     public const string InboundAPIProtocol = "dokodemo-door";
     public const string HttpProtocol = "http://";
     public const string HttpsProtocol = "https://";
+    public const string ConnectApiBaseUrlEnv = "YVPN_CONNECT_API_BASE_URL";
+    public const string ConnectApiBaseUrlDefault = "https://api.yvpn.ru";
     public const string SocksProtocol = "socks://";
     public const string Socks5Protocol = "socks5://";
     public const string AsIs = "AsIs";

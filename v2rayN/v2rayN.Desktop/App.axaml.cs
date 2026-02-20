@@ -107,6 +107,11 @@ public partial class App : Application
             RefreshModeMenuState();
             RefreshToggleConnectionMenuState();
             _ = RefreshConfigsMenuAsync();
+            Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+            {
+                await Task.Delay(500);
+                _ = RefreshConfigsMenuAsync();
+            });
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -145,6 +150,7 @@ public partial class App : Application
         var enable = !IsConnected();
         await vm.SetQuickConnectionAsync(enable, vm.EnableTun);
         RefreshToggleConnectionMenuState();
+        AppEvents.ConnectionStateRefreshRequested.Publish();
     }
 
     private void RefreshModeMenuState()
@@ -203,33 +209,49 @@ public partial class App : Application
         {
             var config = AppManager.Instance.Config;
             var profiles = await AppManager.Instance.ProfileModels(config.SubIndexId, "") ?? [];
-
-            var menu = new NativeMenu();
-            foreach (var profile in profiles.Where(p => !p.IndexId.IsNullOrEmpty()))
-            {
-                var profileId = profile.IndexId;
-                var item = new NativeMenuItem(GetProfileDisplayName(profile))
-                {
-                    ToggleType = NativeMenuItemToggleType.Radio,
-                    IsChecked = profileId == config.IndexId
-                };
-
-                item.Click += async (_, _) => await SelectConfigFromTrayAsync(profileId);
-                menu.Items.Add(item);
-            }
-
-            if (menu.Items.Count == 0)
-            {
-                menu.Items.Add(new NativeMenuItem("Нет конфигураций")
-                {
-                    IsEnabled = false
-                });
-            }
+            Logging.SaveLog($"Tray configs refresh: sub={config.SubIndexId}, count={profiles.Count}");
 
             var menuConfigsRoot = GetConfigurationsMenuItem();
             if (menuConfigsRoot != null)
             {
-                menuConfigsRoot.Menu = menu;
+                var configMenu = menuConfigsRoot.Menu ?? new NativeMenu();
+                configMenu.Items.Clear();
+
+                foreach (var profile in profiles.Where(p => !p.IndexId.IsNullOrEmpty()))
+                {
+                    var profileId = profile.IndexId;
+                    var item = new NativeMenuItem(GetProfileDisplayName(profile))
+                    {
+                        ToggleType = NativeMenuItemToggleType.Radio,
+                        IsChecked = profileId == config.IndexId
+                    };
+
+                    item.Click += async (_, _) => await SelectConfigFromTrayAsync(profileId);
+                    configMenu.Items.Add(item);
+                }
+
+                if (configMenu.Items.Count == 0)
+                {
+                    configMenu.Items.Add(new NativeMenuItem("Нет конфигураций")
+                    {
+                        IsEnabled = false
+                    });
+                }
+
+                if (menuConfigsRoot.Menu == null)
+                {
+                    menuConfigsRoot.Menu = configMenu;
+                }
+
+                menuConfigsRoot.IsEnabled = true;
+                Logging.SaveLog($"Tray configs applied: items={configMenu.Items.Count}");
+                RefreshModeMenuState();
+                RefreshToggleConnectionMenuState();
+            }
+            else
+            {
+                Logging.SaveLog("Tray configs refresh: menu root not found");
+                _refreshConfigsMenuPending = true;
             }
         }
         finally
@@ -238,7 +260,11 @@ public partial class App : Application
             if (_refreshConfigsMenuPending)
             {
                 _refreshConfigsMenuPending = false;
-                _ = RefreshConfigsMenuAsync();
+                Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+                {
+                    await Task.Delay(200);
+                    _ = RefreshConfigsMenuAsync();
+                });
             }
         }
     }
@@ -285,9 +311,15 @@ public partial class App : Application
 
     private static NativeMenuItem? FindMenuItem(NativeMenu? menu, string header)
     {
-        return menu?.Items
+        if (menu == null)
+        {
+            return null;
+        }
+
+        var target = NormalizeHeader(header);
+        return menu.Items
             .OfType<NativeMenuItem>()
-            .FirstOrDefault(item => string.Equals(item.Header?.ToString(), header, StringComparison.Ordinal));
+            .FirstOrDefault(item => string.Equals(NormalizeHeader(item.Header), target, StringComparison.OrdinalIgnoreCase));
     }
 
     private (NativeMenuItem? Proxy, NativeMenuItem? Tunnel) GetModeMenuItems()
@@ -301,7 +333,29 @@ public partial class App : Application
     private NativeMenuItem? GetConfigurationsMenuItem()
     {
         var rootMenu = GetTrayMenu();
-        return FindMenuItem(rootMenu, ConfigurationsMenuHeader);
+        var item = FindMenuItem(rootMenu, ConfigurationsMenuHeader);
+        if (item != null)
+        {
+            return item;
+        }
+
+        if (rootMenu == null)
+        {
+            return null;
+        }
+
+        // Fallback: look for the placeholder submenu (Загрузка...).
+        return rootMenu.Items
+            .OfType<NativeMenuItem>()
+            .FirstOrDefault(menuItem =>
+                menuItem.Menu?.Items
+                    .OfType<NativeMenuItem>()
+                    .Any(child => string.Equals(NormalizeHeader(child.Header), "Загрузка...", StringComparison.OrdinalIgnoreCase)) == true);
+    }
+
+    private static string NormalizeHeader(object? header)
+    {
+        return header?.ToString()?.Trim() ?? string.Empty;
     }
 
     private void RefreshToggleConnectionMenuState()
@@ -337,7 +391,6 @@ public partial class App : Application
     {
         return AppManager.Instance.Config.SystemProxyItem.SysProxyType == ESysProxyType.ForcedChange;
     }
-
     private static string GetProfileDisplayName(ProfileItemModel profile)
     {
         if (!string.IsNullOrWhiteSpace(profile.Remarks))

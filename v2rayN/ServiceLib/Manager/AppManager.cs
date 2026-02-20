@@ -68,6 +68,8 @@ public sealed class AppManager
         _config = config;
         Thread.CurrentThread.CurrentUICulture = new(_config.UiItem.CurrentLanguage);
 
+        ApplyConnectApiDefaults();
+
         //Under Win10
         if (Utils.IsWindows() && Environment.OSVersion.Version.Major < 10)
         {
@@ -85,6 +87,24 @@ public sealed class AppManager
         SQLiteHelper.Instance.CreateTable<ProfileGroupItem>();
 #pragma warning restore CS0618
         return true;
+    }
+
+    private void ApplyConnectApiDefaults()
+    {
+        _config.ConstItem ??= new ConstItem();
+
+        var envUrl = Environment.GetEnvironmentVariable(Global.ConnectApiBaseUrlEnv);
+        if (!envUrl.IsNullOrEmpty())
+        {
+            _config.ConstItem.ConnectApiBaseUrl = envUrl.Trim();
+            return;
+        }
+
+        if (_config.ConstItem.ConnectApiBaseUrl.IsNullOrEmpty())
+        {
+            _config.ConstItem.ConnectApiBaseUrl = Global.ConnectApiBaseUrlDefault;
+            _ = ConfigHandler.SaveConfig(_config);
+        }
     }
 
     public bool InitComponents()
