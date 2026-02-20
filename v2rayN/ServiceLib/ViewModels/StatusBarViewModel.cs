@@ -399,6 +399,8 @@ public class StatusBarViewModel : MyReactiveObject
 
     public async Task<bool> SetQuickConnectionAsync(bool enable, bool useTun = true)
     {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        Logging.SaveLog($"SetQuickConnectionAsync begin. enable={enable}, useTun={useTun}");
         await _quickConnectionSemaphore.WaitAsync();
         try
         {
@@ -409,6 +411,7 @@ public class StatusBarViewModel : MyReactiveObject
                     if (Utils.IsWindows())
                     {
                         NoticeManager.Instance.Enqueue("Для режима ТУННЕЛЬ перезапустите приложение от имени администратора.");
+                        Logging.SaveLog("SetQuickConnectionAsync canceled: no admin rights for tunnel mode.");
                         return false;
                     }
                     else
@@ -416,6 +419,7 @@ public class StatusBarViewModel : MyReactiveObject
                         bool? passwordResult = await _updateView?.Invoke(EViewAction.PasswordInput, null);
                         if (passwordResult == false)
                         {
+                            Logging.SaveLog("SetQuickConnectionAsync canceled: sudo dialog rejected.");
                             return false;
                         }
                     }
@@ -438,6 +442,7 @@ public class StatusBarViewModel : MyReactiveObject
                 await ConfigHandler.SaveConfig(_config);
                 AppEvents.ReloadRequested.Publish();
                 AppEvents.ConnectionStateRefreshRequested.Publish();
+                Logging.SaveLog($"SetQuickConnectionAsync success. enable={enable}, useTun={useTun}, elapsedMs={sw.ElapsedMilliseconds}");
                 return true;
             }
 
@@ -457,10 +462,17 @@ public class StatusBarViewModel : MyReactiveObject
             await ConfigHandler.SaveConfig(_config);
             await CoreManager.Instance.CoreStop();
             AppEvents.ConnectionStateRefreshRequested.Publish();
+            Logging.SaveLog($"SetQuickConnectionAsync success. enable={enable}, useTun={useTun}, elapsedMs={sw.ElapsedMilliseconds}");
             return true;
+        }
+        catch (Exception ex)
+        {
+            Logging.SaveLog("SetQuickConnectionAsync", ex);
+            throw;
         }
         finally
         {
+            Logging.SaveLog($"SetQuickConnectionAsync end. enable={enable}, useTun={useTun}, elapsedMs={sw.ElapsedMilliseconds}");
             _quickConnectionSemaphore.Release();
         }
     }

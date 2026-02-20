@@ -7,7 +7,6 @@ public static class ConfigHandler
     private static readonly string _configRes = Global.ConfigFileName;
     private static readonly string _tag = "ConfigHandler";
     private static readonly SemaphoreSlim _saveConfigLock = new(1, 1);
-    private static readonly Mutex _saveConfigMutex = new(false, @"Global\Yvpn_Config_Save_Lock");
 
     #region ConfigHandler
 
@@ -195,17 +194,15 @@ public static class ConfigHandler
     /// <returns>0 if successful, -1 if failed</returns>
     public static async Task<int> SaveConfig(Config config)
     {
-        await _saveConfigLock.WaitAsync();
-        var lockTaken = false;
+        var lockTaken = await _saveConfigLock.WaitAsync(TimeSpan.FromSeconds(5));
+        if (!lockTaken)
+        {
+            Logging.SaveLog($"{_tag}, timed out waiting for config save lock.");
+            return -1;
+        }
+
         try
         {
-            lockTaken = _saveConfigMutex.WaitOne(TimeSpan.FromSeconds(5));
-            if (!lockTaken)
-            {
-                Logging.SaveLog($"{_tag}, timed out waiting for config save lock.");
-                return -1;
-            }
-
             var resPath = Utils.GetConfigPath(_configRes);
 
             var content = JsonUtils.Serialize(config, true, true);
@@ -253,9 +250,8 @@ public static class ConfigHandler
         {
             if (lockTaken)
             {
-                _saveConfigMutex.ReleaseMutex();
+                _saveConfigLock.Release();
             }
-            _saveConfigLock.Release();
         }
 
         return -1;

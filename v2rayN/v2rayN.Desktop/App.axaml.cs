@@ -1,3 +1,4 @@
+using v2rayN.Desktop.Common;
 using v2rayN.Desktop.Views;
 
 namespace v2rayN.Desktop;
@@ -30,6 +31,8 @@ public partial class App : Application
             {
                 AppManager.Instance.InitComponents();
                 DataContext = StatusBarViewModel.Instance;
+
+                UiWatchdog.Start();
 
                 StatusBarViewModel.Instance
                     .WhenAnyValue(vm => vm.EnableTun)
@@ -136,16 +139,19 @@ public partial class App : Application
 
     private async void MenuModeProxy_Click(object? sender, EventArgs e)
     {
+        Logging.SaveLog("Tray: mode -> proxy");
         await SetTrayModeAsync(false);
     }
 
     private async void MenuModeTun_Click(object? sender, EventArgs e)
     {
+        Logging.SaveLog("Tray: mode -> tunnel");
         await SetTrayModeAsync(true);
     }
 
     private async void MenuToggleConnection_Click(object? sender, EventArgs e)
     {
+        Logging.SaveLog("Tray: toggle connection");
         var vm = StatusBarViewModel.Instance;
         var enable = !IsConnected();
         await vm.SetQuickConnectionAsync(enable, vm.EnableTun);
@@ -276,6 +282,7 @@ public partial class App : Application
             return;
         }
 
+        Logging.SaveLog($"Tray: select config {indexId}");
         var config = AppManager.Instance.Config;
         if (config.IndexId == indexId)
         {

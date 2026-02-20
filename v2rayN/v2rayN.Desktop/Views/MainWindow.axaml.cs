@@ -1138,14 +1138,18 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         for (var i = 0; i < maxAttempts; i++)
         {
             using var client = new TcpClient();
+            using var cts = new CancellationTokenSource(delayMs);
             try
             {
-                var connectTask = client.ConnectAsync(Global.Loopback, port);
-                var completed = await Task.WhenAny(connectTask, Task.Delay(delayMs));
-                if (completed == connectTask && client.Connected)
+                await client.ConnectAsync(Global.Loopback, port, cts.Token);
+                if (client.Connected)
                 {
                     return true;
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // connect probe timed out
             }
             catch
             {
