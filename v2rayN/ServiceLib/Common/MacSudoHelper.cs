@@ -4,6 +4,13 @@ using ServiceLib;
 
 namespace ServiceLib.Common;
 
+public enum MacSudoPromptResult
+{
+    Installed,
+    Canceled,
+    Failed
+}
+
 public static class MacSudoHelper
 {
     private const string HelperRunScriptName = "run_as_root.sh";
@@ -119,9 +126,14 @@ public static class MacSudoHelper
 
     public static async Task<bool> InstallHelperWithSystemPromptAsync(string basePath)
     {
+        return await InstallHelperWithSystemPromptDetailedAsync(basePath) == MacSudoPromptResult.Installed;
+    }
+
+    public static async Task<MacSudoPromptResult> InstallHelperWithSystemPromptDetailedAsync(string basePath)
+    {
         if (!Utils.IsMacOS() || basePath.IsNullOrEmpty())
         {
-            return false;
+            return MacSudoPromptResult.Failed;
         }
 
         try
@@ -163,24 +175,36 @@ public static class MacSudoHelper
             {
             }
 
-            var installCommand = $"/bin/bash {tempInstall}";
+            var escapedInstallPathForShell = tempInstall.Replace("'", "'\\''");
+            var installCommand = $"/bin/bash '{escapedInstallPathForShell}'";
             var prompt = "Yvpn: для режима «Туннель» нужны права администратора. Введите пароль macOS.";
             var appleScript = $"do shell script {AppleScriptQuote(installCommand)} with prompt {AppleScriptQuote(prompt)} with administrator privileges";
             var result = await Cli.Wrap("/usr/bin/osascript")
                 .WithArguments(new List<string> { "-e", appleScript })
+                .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
 
             if (result.ExitCode != 0)
             {
+                var stderr = result.StandardError ?? string.Empty;
+                if (stderr.Contains("-128", StringComparison.OrdinalIgnoreCase)
+                    || stderr.Contains("User canceled", StringComparison.OrdinalIgnoreCase))
+                {
+                    return MacSudoPromptResult.Canceled;
+                }
+
                 Logging.SaveLog($"MacSudoHelper: osascript failed ({result.ExitCode}) {result.StandardError} {result.StandardOutput}");
-                return false;
+                return MacSudoPromptResult.Failed;
             }
 
-            return IsHelperInstalled(normalizedBasePath);
+            return IsHelperInstalled(normalizedBasePath)
+                ? MacSudoPromptResult.Installed
+                : MacSudoPromptResult.Failed;
         }
-        catch
+        catch (Exception ex)
         {
-            return false;
+            Logging.SaveLog("MacSudoHelper.InstallHelperWithSystemPromptDetailedAsync", ex);
+            return MacSudoPromptResult.Failed;
         }
     }
 

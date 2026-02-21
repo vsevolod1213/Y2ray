@@ -88,6 +88,34 @@ public partial class StatusBarView : ReactiveUserControl<StatusBarViewModel>
 
     private async Task<bool> PasswordInputAsync()
     {
+        if (Utils.IsMacOS())
+        {
+            if (MacSudoHelper.IsHelperInstalled(Utils.StartupPath()))
+            {
+                return true;
+            }
+
+            for (var attempt = 0; attempt < 2; attempt++)
+            {
+                var result = await MacSudoHelper.InstallHelperWithSystemPromptDetailedAsync(Utils.StartupPath());
+                Logging.SaveLog($"Mac helper system prompt result: {result}, attempt={attempt + 1}");
+                if (result == MacSudoPromptResult.Installed)
+                {
+                    NoticeManager.Instance.Enqueue(ResUI.SudoHelperInstalled);
+                    return true;
+                }
+
+                if (result != MacSudoPromptResult.Canceled)
+                {
+                    break;
+                }
+            }
+
+            NoticeManager.Instance.Enqueue(ResUI.SudoHelperInstallFailed);
+            togEnableTun.IsChecked = false;
+            return false;
+        }
+
         var dialog = new SudoPasswordInputView();
         var obj = await DialogHost.Show(dialog);
 

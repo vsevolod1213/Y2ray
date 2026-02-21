@@ -1339,7 +1339,7 @@
     <value>Помощник для туннеля установлен. Пароль больше не потребуется.</value>
   </data>
   <data name="SudoHelperInstallFailed" xml:space="preserve">
-    <value>Не удалось установить помощник. Проверьте пароль и попробуйте ещё раз.</value>
+    <value>Не удалось установить помощник туннеля. Возможно, доступ был отменён или возникла ошибка macOS. Повторите попытку.</value>
   </data>
   <data name="TransportHeaderTypeTip5" xml:space="preserve">
     <value>*XHTTP-режим</value>

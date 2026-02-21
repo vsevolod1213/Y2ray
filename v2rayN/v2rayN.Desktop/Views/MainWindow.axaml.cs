@@ -267,15 +267,24 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
                 return true;
             }
 
-            var installed = await MacSudoHelper.InstallHelperWithSystemPromptAsync(Utils.StartupPath());
-            if (installed)
+            for (var attempt = 0; attempt < 2; attempt++)
             {
-                NoticeManager.Instance.Enqueue(ResUI.SudoHelperInstalled);
-                return true;
+                var result = await MacSudoHelper.InstallHelperWithSystemPromptDetailedAsync(Utils.StartupPath());
+                Logging.SaveLog($"Mac helper system prompt result: {result}, attempt={attempt + 1}");
+                if (result == MacSudoPromptResult.Installed)
+                {
+                    NoticeManager.Instance.Enqueue(ResUI.SudoHelperInstalled);
+                    return true;
+                }
+
+                if (result != MacSudoPromptResult.Canceled)
+                {
+                    break;
+                }
             }
 
-            NoticeManager.Instance.Enqueue("Системный диалог не открылся или был отменён. Попробуйте ещё раз или введите пароль вручную.");
-            return await PasswordInputWithDialogAsync();
+            NoticeManager.Instance.Enqueue(ResUI.SudoHelperInstallFailed);
+            return false;
         }
 
         return await PasswordInputWithDialogAsync();
