@@ -8,10 +8,13 @@ public partial class CoreConfigV2rayService
         {
             var protocolExtra = node.GetProtocolExtra();
             var muxEnabled = node.MuxEnabled ?? _config.CoreBasicItem.MuxEnabled;
+            outbound.packetEncoding = null;
             switch (node.ConfigType)
             {
                 case EConfigType.VMess:
                     {
+                        outbound.packetEncoding = "xudp";
+
                         VnextItem4Ray vnextItem;
                         if (outbound.settings.vnext.Count <= 0)
                         {
@@ -117,6 +120,8 @@ public partial class CoreConfigV2rayService
                     }
                 case EConfigType.VLESS:
                     {
+                        outbound.packetEncoding = "xudp";
+
                         VnextItem4Ray vnextItem;
                         if (outbound.settings.vnext?.Count <= 0)
                         {
