@@ -91,6 +91,8 @@ public class Global
     public const string SingboxHostsDNSTag = "hosts_dns";
     public const string SingboxFakeDNSTag = "fake_dns";
     public const string SingboxEchDNSTag = "ech_dns";
+    public const string YvpnTunInterfaceName = "yvpn_tun";
+    public const string LegacyTunInterfaceName = "singbox_tun";
 
     public const int Hysteria2DefaultHopInt = 10;
 

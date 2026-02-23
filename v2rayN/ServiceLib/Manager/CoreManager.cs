@@ -14,6 +14,8 @@ public class CoreManager
     private bool _linuxSudo = false;
     private Func<bool, string, Task>? _updateFunc;
     private const string _tag = "CoreHandler";
+    private const int _socksReadyAttempts = 20;
+    private const int _socksReadyDelayMs = 150;
 
     public async Task Init(Config config, Func<bool, string, Task> updateFunc)
     {
@@ -187,18 +189,35 @@ public class CoreManager
             var itemSocks = await ConfigHandler.GetPreSocksItem(_config, node, coreType);
             if (itemSocks != null)
             {
+                // In tun mode pre-service depends on local SOCKS; wait until main core is listening.
+                if (_config.TunModeItem.EnableTun)
+                {
+                    var inboundPort = AppManager.Instance.GetLocalPort(EInboundProtocol.socks);
+                    await WaitForLocalSocksReady(inboundPort);
+                }
+
                 var preCoreType = itemSocks.CoreType ?? ECoreType.sing_box;
                 var fileName = Utils.GetBinConfigPath(Global.CorePreConfigFileName);
                 var result = await CoreConfigHandler.GenerateClientConfig(itemSocks, fileName);
                 if (result.Success)
                 {
                     var coreInfo = CoreInfoManager.Instance.GetCoreInfo(preCoreType);
-                    var proc = await RunProcess(coreInfo, Global.CorePreConfigFileName, true, true);
-                    if (proc is null)
+                    ProcessService? proc = null;
+                    for (var attempt = 0; attempt < 2; attempt++)
                     {
-                        return;
+                        proc = await RunProcess(coreInfo, Global.CorePreConfigFileName, true, true);
+                        if (proc != null)
+                        {
+                            break;
+                        }
+
+                        await Task.Delay(400);
                     }
-                    _processPreService = proc;
+
+                    if (proc != null)
+                    {
+                        _processPreService = proc;
+                    }
                 }
             }
         }
@@ -207,6 +226,30 @@ public class CoreManager
     private async Task UpdateFunc(bool notify, string msg)
     {
         await _updateFunc?.Invoke(notify, msg);
+    }
+
+    private static async Task<bool> WaitForLocalSocksReady(int port)
+    {
+        for (var i = 0; i < _socksReadyAttempts; i++)
+        {
+            using var client = new TcpClient();
+            using var cts = new CancellationTokenSource(_socksReadyDelayMs);
+            try
+            {
+                await client.ConnectAsync(Global.Loopback, port, cts.Token);
+                if (client.Connected)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+            }
+
+            await Task.Delay(_socksReadyDelayMs);
+        }
+
+        return false;
     }
 
     #endregion Private
