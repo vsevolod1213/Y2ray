@@ -1,8 +1,9 @@
-using Avalonia.Controls.Notifications;
+﻿using Avalonia.Controls.Notifications;
 using Avalonia.Input;
 using Avalonia.Threading;
 using DialogHostAvalonia;
 using Microsoft.Win32;
+using ServiceLib.Handler.SysProxy;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -37,7 +38,10 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         "qv2ray",
         "v2rayu",
         "v2rayn",
-        "warp"
+        "warp",
+        "xray",
+        "sing-box",
+        "v2ray"
     ];
 
     private static Config _config;
@@ -61,6 +65,8 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
     private double _modeThumbCurrentLeft = ModeThumbProxyLeft;
     private double _modeThumbFromLeft;
     private double _modeThumbToLeft;
+
+    private sealed record ConflictingProcessInfo(int ProcessId, string ProcessName);
 
     public MainWindow()
     {
@@ -355,9 +361,121 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         return _config.SystemProxyItem.SysProxyType == ESysProxyType.ForcedChange && IsOwnCoreProcessRunning();
     }
 
+    private static string GetOwnBinaryRootPath()
+    {
+        try
+        {
+            var exePath = Utils.GetExePath();
+            var dir = Path.GetDirectoryName(exePath);
+            if (!string.IsNullOrWhiteSpace(dir))
+            {
+                return Path.GetFullPath(dir);
+            }
+        }
+        catch
+        {
+        }
+
+        return Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory);
+    }
+
+    private static IReadOnlyList<string> GetOwnProcessRoots()
+    {
+        var roots = new List<string>();
+
+        void AddRoot(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+
+            try
+            {
+                var normalized = Path.GetFullPath(path);
+                if (!roots.Any(r => string.Equals(r, normalized, StringComparison.OrdinalIgnoreCase)))
+                {
+                    roots.Add(normalized);
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        AddRoot(GetOwnBinaryRootPath());
+        AddRoot(Utils.GetBaseDirectory());
+        AddRoot(Utils.StartupPath());
+
+        return roots;
+    }
+
+    private static bool IsPathUnderOwnRoots(string? path, IReadOnlyList<string> ownRoots)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        try
+        {
+            var normalizedPath = Path.GetFullPath(path);
+            return ownRoots.Any(root => normalizedPath.StartsWith(root, StringComparison.OrdinalIgnoreCase));
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool CanTerminateConflictingProcess(Process process, string? processPath = null)
+    {
+        try
+        {
+            if (process.Id == Environment.ProcessId || process.HasExited)
+            {
+                return false;
+            }
+
+            // Never kill services or processes from other sessions.
+            if (process.SessionId != Process.GetCurrentProcess().SessionId)
+            {
+                return false;
+            }
+
+            if (processPath.IsNullOrEmpty())
+            {
+                try
+                {
+                    processPath = process.MainModule?.FileName;
+                }
+                catch
+                {
+                }
+            }
+
+            if (!processPath.IsNullOrEmpty())
+            {
+                var normalizedPath = Path.GetFullPath(processPath);
+                var windowsRoot = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+                if (!string.IsNullOrWhiteSpace(windowsRoot)
+                    && normalizedPath.StartsWith(windowsRoot, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+        }
+        catch
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     private static bool IsOwnCoreProcessRunning()
     {
-        var startupPath = Path.GetFullPath(Utils.StartupPath());
+        var ownRoots = GetOwnProcessRoots();
         string[] coreNames = ["xray", "sing-box", "mihomo", "v2ray"];
 
         foreach (var coreName in coreNames)
@@ -382,8 +500,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
                         continue;
                     }
 
-                    var fullPath = Path.GetFullPath(processPath);
-                    if (fullPath.StartsWith(startupPath, StringComparison.OrdinalIgnoreCase))
+                    if (IsPathUnderOwnRoots(processPath, ownRoots))
                     {
                         return true;
                     }
@@ -772,7 +889,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
                 if (server == null)
                 {
                     NoticeManager.Instance.Enqueue(ResUI.CheckServerSettings);
-                    await TrySetQuickConnectionAsync(false, _useTunMode);
+                    await EnsureDisconnectedAsync();
                     return;
                 }
 
@@ -784,7 +901,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
                         NoticeManager.Instance.SendMessage(msg);
                     }
                     NoticeManager.Instance.Enqueue(Utils.List2String(checkMsgs.Take(10).ToList(), true));
-                    await TrySetQuickConnectionAsync(false, _useTunMode);
+                    await EnsureDisconnectedAsync();
                     return;
                 }
 
@@ -794,7 +911,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
                 if (coreExec.IsNullOrEmpty())
                 {
                     NoticeManager.Instance.Enqueue(coreMsg);
-                    await TrySetQuickConnectionAsync(false, _useTunMode);
+                    await EnsureDisconnectedAsync();
                     return;
                 }
 
@@ -805,14 +922,14 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
                 var inboundPort = AppManager.Instance.GetLocalPort(EInboundProtocol.socks);
                 if (!await WaitForSocksReadyAsync(inboundPort))
                 {
-                    await TrySetQuickConnectionAsync(false, _useTunMode);
+                    await EnsureDisconnectedAsync();
                     NoticeManager.Instance.Enqueue($"{ResUI.FailedToRunCore} (127.0.0.1:{inboundPort})");
                     return;
                 }
             }
             else
             {
-                await TrySetQuickConnectionAsync(false, _useTunMode);
+                await EnsureDisconnectedAsync();
             }
 
             await Task.Delay(200);
@@ -854,6 +971,31 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         {
             Logging.SaveLog("TrySetQuickConnectionAsync", ex);
             NoticeManager.Instance.Enqueue(ResUI.OperationFailed);
+            return false;
+        }
+    }
+
+    private async Task<bool> EnsureDisconnectedAsync()
+    {
+        var disconnected = await TrySetQuickConnectionAsync(false, _useTunMode);
+        if (disconnected)
+        {
+            return true;
+        }
+
+        try
+        {
+            _config.SystemProxyItem.SysProxyType = ESysProxyType.ForcedClear;
+            await SysProxyHandler.UpdateSysProxy(_config, true);
+            await ConfigHandler.SaveConfig(_config);
+            await CoreManager.Instance.CoreStop();
+            AppEvents.ConnectionStateRefreshRequested.Publish();
+            Logging.SaveLog("EnsureDisconnectedAsync fallback cleanup applied.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logging.SaveLog("EnsureDisconnectedAsync", ex);
             return false;
         }
     }
@@ -1039,7 +1181,20 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
     private bool TryGetConflictingClientName(out string processName)
     {
         processName = string.Empty;
-        var startupPath = Path.GetFullPath(Utils.StartupPath());
+        var conflicts = GetConflictingProcesses();
+        if (conflicts.Count == 0)
+        {
+            return false;
+        }
+
+        processName = conflicts[0].ProcessName;
+        return true;
+    }
+
+    private List<ConflictingProcessInfo> GetConflictingProcesses()
+    {
+        var ownRoots = GetOwnProcessRoots();
+        var result = new List<ConflictingProcessInfo>();
 
         try
         {
@@ -1075,15 +1230,13 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
                     if (!string.IsNullOrWhiteSpace(processPath))
                     {
-                        var normalizedPath = Path.GetFullPath(processPath);
-                        if (normalizedPath.StartsWith(startupPath, StringComparison.OrdinalIgnoreCase))
+                        if (IsPathUnderOwnRoots(processPath, ownRoots))
                         {
                             continue;
                         }
                     }
 
-                    processName = name;
-                    return true;
+                    result.Add(new ConflictingProcessInfo(process.Id, name));
                 }
                 catch
                 {
@@ -1099,12 +1252,65 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
             Logging.SaveLog("TryGetConflictingClientName", ex);
         }
 
-        return false;
+        return result
+            .GroupBy(p => p.ProcessId)
+            .Select(g => g.First())
+            .ToList();
+    }
+
+    private int StopConflictingClientsGracefully()
+    {
+        var stopped = 0;
+        var conflicts = GetConflictingProcesses();
+        foreach (var conflict in conflicts)
+        {
+            try
+            {
+                using var process = Process.GetProcessById(conflict.ProcessId);
+                string? processPath = null;
+                try
+                {
+                    processPath = process.MainModule?.FileName;
+                }
+                catch
+                {
+                }
+
+                if (!CanTerminateConflictingProcess(process, processPath))
+                {
+                    continue;
+                }
+
+                process.Kill(true);
+                process.WaitForExit(2000);
+                stopped++;
+                Logging.SaveLog($"StopConflictingClientsGracefully force killed: {conflict.ProcessName}({conflict.ProcessId})");
+            }
+            catch (Exception ex)
+            {
+                Logging.SaveLog("StopConflictingClientsGracefully", ex);
+            }
+        }
+
+        return stopped;
     }
 
     private async Task CleanupConflictingProxySettingsAsync()
     {
-        await TrySetQuickConnectionAsync(false, _useTunMode);
+        await EnsureDisconnectedAsync();
+
+        var stoppedClients = StopConflictingClientsGracefully();
+        if (stoppedClients > 0)
+        {
+            NoticeManager.Instance.Enqueue($"Закрыто сторонних VPN-клиентов: {stoppedClients}");
+        }
+
+        var remaining = GetConflictingProcesses().Count;
+        if (remaining > 0)
+        {
+            NoticeManager.Instance.Enqueue("Часть сторонних VPN-клиентов еще активна. Закройте их вручную при необходимости.");
+        }
+
         RefreshConnectionView();
     }
 
@@ -1117,7 +1323,7 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
 
         _startupDialogsShown = true;
 
-        await TrySetQuickConnectionAsync(false, _useTunMode);
+        await EnsureDisconnectedAsync();
         RefreshConnectionView();
 
         if (_useTunMode && Utils.IsWindows() && !Utils.IsAdministrator())
@@ -1346,3 +1552,4 @@ public partial class MainWindow : WindowBase<StatusBarViewModel>
         ConfigHandler.SaveWindowSizeItem(_config, GetType().Name, Width, Height);
     }
 }
+

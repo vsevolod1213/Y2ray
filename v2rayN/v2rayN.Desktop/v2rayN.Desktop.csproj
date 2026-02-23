@@ -6,6 +6,9 @@
 		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
 		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
 		<AssemblyName>v2rayN</AssemblyName>
+		<AssemblyTitle>Yvpn</AssemblyTitle>
+		<Product>Yvpn</Product>
+		<FileDescription>Yvpn</FileDescription>
 	</PropertyGroup>
 
 	<ItemGroup>
