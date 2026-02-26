@@ -137,31 +137,54 @@ public class CoreManager
 
     public async Task CoreStop()
     {
-        try
+        var processService = _processService;
+        var processPreService = _processPreService;
+        var needSudoKill = _linuxSudo;
+
+        // Clear references first to avoid races with concurrent start/stop requests.
+        _processService = null;
+        _processPreService = null;
+        _linuxSudo = false;
+
+        if (needSudoKill)
         {
-            if (_linuxSudo)
+            try
             {
                 await CoreAdminManager.Instance.KillProcessAsLinuxSudo();
-                _linuxSudo = false;
             }
-
-            if (_processService != null)
+            catch (Exception ex)
             {
-                await _processService.StopAsync();
-                _processService.Dispose();
-                _processService = null;
+                Logging.SaveLog($"{_tag}.KillProcessAsLinuxSudo", ex);
             }
+        }
 
-            if (_processPreService != null)
-            {
-                await _processPreService.StopAsync();
-                _processPreService.Dispose();
-                _processPreService = null;
-            }
+        await StopProcessSafe(processService, "main");
+        await StopProcessSafe(processPreService, "pre");
+    }
+
+    private static async Task StopProcessSafe(ProcessService? process, string scope)
+    {
+        if (process == null)
+        {
+            return;
+        }
+
+        try
+        {
+            await process.StopAsync();
         }
         catch (Exception ex)
         {
-            Logging.SaveLog(_tag, ex);
+            Logging.SaveLog($"CoreHandler.{scope}.StopAsync", ex);
+        }
+
+        try
+        {
+            process.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Logging.SaveLog($"CoreHandler.{scope}.Dispose", ex);
         }
     }
 
